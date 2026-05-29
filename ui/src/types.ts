@@ -34,3 +34,11 @@ export interface Artifact {
   latency_ms: number | null
   error: string | null
 }
+
+export interface Wiki {
+  session_id: string
+  topics: string[]
+  decisions: string[]
+  action_items: string[]
+  created_at: number
+}
