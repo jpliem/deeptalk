@@ -5,6 +5,8 @@ import { TranscriptPane } from './TranscriptPane'
 import { ArtifactCard } from './ArtifactCard'
 import { AskBox } from './AskBox'
 import { postAsk } from './ask'
+import { WikiPanel } from './WikiPanel'
+import { postFinalize, getWiki } from './wiki'
 
 const SESSION_ID =
   new URLSearchParams(window.location.search).get('session') ?? 'demo'
@@ -21,6 +23,11 @@ export default function App() {
     } finally {
       setPending(false)
     }
+  }
+
+  async function handleFinalize() {
+    await postFinalize(SESSION_ID)
+    return getWiki(SESSION_ID)
   }
 
   return (
@@ -47,6 +54,7 @@ export default function App() {
           </div>
         </section>
       </div>
+      <WikiPanel onFinalize={handleFinalize} />
     </main>
   )
 }
