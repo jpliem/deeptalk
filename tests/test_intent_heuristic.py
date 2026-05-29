@@ -2,30 +2,43 @@ from deeptalk.intent.heuristic import HeuristicIntentDetector
 from deeptalk.intent.models import Intent, normalize_topic
 
 
-async def test_detects_question_mark():
-    d = HeuristicIntentDetector()
-    intent = await d.detect("postgres or sqlite?")
-    assert isinstance(intent, Intent)
-    assert intent.kind == "search"
-    assert intent.query == "postgres or sqlite?"
+async def test_question_is_search():
+    intent = await HeuristicIntentDetector().detect("what is rust")
+    assert isinstance(intent, Intent) and intent.kind == "search"
 
 
-async def test_detects_leading_question_word():
-    d = HeuristicIntentDetector()
-    intent = await d.detect("should we use postgres or sqlite")
-    assert intent is not None
-    assert intent.kind == "search"
+async def test_question_mark_is_search():
+    intent = await HeuristicIntentDetector().detect("is rust memory safe?")
+    assert intent is not None and intent.kind == "search"
 
 
-async def test_ignores_statement():
-    d = HeuristicIntentDetector()
-    assert await d.detect("postgres scales better for concurrent writes") is None
+async def test_or_choice_is_debate():
+    intent = await HeuristicIntentDetector().detect("should we use postgres or sqlite")
+    assert intent is not None and intent.kind == "debate"
 
 
-async def test_ignores_blank():
-    d = HeuristicIntentDetector()
-    assert await d.detect("   ") is None
+async def test_pros_and_cons_is_debate():
+    intent = await HeuristicIntentDetector().detect("what are the pros and cons of kafka")
+    assert intent is not None and intent.kind == "debate"
 
 
-def test_normalize_topic_collapses_case_and_punctuation():
+async def test_planning_phrase_is_planning():
+    intent = await HeuristicIntentDetector().detect("how do we build the auth system")
+    assert intent is not None and intent.kind == "planning"
+
+
+async def test_lets_plan_is_planning():
+    intent = await HeuristicIntentDetector().detect("let's plan the migration")
+    assert intent is not None and intent.kind == "planning"
+
+
+async def test_statement_is_none():
+    assert await HeuristicIntentDetector().detect("postgres scales better for writes") is None
+
+
+async def test_blank_is_none():
+    assert await HeuristicIntentDetector().detect("   ") is None
+
+
+def test_normalize_topic_stable():
     assert normalize_topic("Postgres or SQLite?") == normalize_topic("postgres  or sqlite")

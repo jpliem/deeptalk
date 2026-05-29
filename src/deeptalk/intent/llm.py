@@ -6,12 +6,16 @@ import re
 from deeptalk.intent.models import Intent, normalize_topic
 from deeptalk.llm.router import ModelRouter, run_with_fallback
 
+_VALID_KINDS = ("search", "debate", "planning")
+
 _PROMPT = (
-    "You classify a line from a meeting transcript. If it raises a question or a "
-    "topic worth looking up, respond with JSON: "
-    '{{"is_search": true, "query": "<a concise web search query>"}}. '
-    'Otherwise respond {{"is_search": false, "query": ""}}. '
-    "Respond with ONLY the JSON.\n\nLine: {text}"
+    "Classify a line from a meeting transcript into one kind:\n"
+    "- search: a question or fact worth looking up\n"
+    "- debate: a decision between options / pros and cons\n"
+    "- planning: a goal that needs a plan or steps\n"
+    "- none: anything else\n"
+    'Respond ONLY as JSON: {{"kind": "search|debate|planning|none", '
+    '"query": "<concise topic/query>"}}.\n\nLine: {text}'
 )
 
 
@@ -26,7 +30,7 @@ def _parse(raw: str) -> dict | None:
 
 
 class LlmIntentDetector:
-    """Classifies transcript lines with an LLM via the router's `complete`."""
+    """Classifies transcript lines into a kind with an LLM via `complete`."""
 
     def __init__(self, router: ModelRouter) -> None:
         self._router = router
@@ -39,7 +43,10 @@ class LlmIntentDetector:
         except Exception:  # noqa: BLE001 - detection is best-effort
             return None
         data = _parse(raw)
-        if not data or not data.get("is_search"):
+        if not data:
+            return None
+        kind = data.get("kind")
+        if kind not in _VALID_KINDS:
             return None
         query = (data.get("query") or text).strip()
-        return Intent(kind="search", query=query, topic=normalize_topic(query))
+        return Intent(kind=kind, query=query, topic=normalize_topic(query))

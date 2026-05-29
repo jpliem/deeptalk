@@ -8,28 +8,31 @@ def _router(provider):
     return ModelRouter(providers={"p": provider}, routes={"intent": ["p"]}, default=["p"])
 
 
-async def test_returns_intent_when_model_says_search():
-    provider = FakeLlmProvider(completion='{"is_search": true, "query": "postgres vs sqlite"}')
-    d = LlmIntentDetector(_router(provider))
-    intent = await d.detect("we keep going back and forth on the database")
+async def test_classifies_debate():
+    provider = FakeLlmProvider(completion='{"kind": "debate", "query": "postgres vs sqlite"}')
+    intent = await LlmIntentDetector(_router(provider)).detect("we keep arguing about the db")
     assert isinstance(intent, Intent)
+    assert intent.kind == "debate"
     assert intent.query == "postgres vs sqlite"
 
 
-async def test_returns_none_when_model_says_not_search():
-    provider = FakeLlmProvider(completion='{"is_search": false, "query": ""}')
-    d = LlmIntentDetector(_router(provider))
-    assert await d.detect("hello everyone") is None
+async def test_classifies_planning():
+    provider = FakeLlmProvider(completion='{"kind": "planning", "query": "plan the migration"}')
+    intent = await LlmIntentDetector(_router(provider)).detect("we need to migrate")
+    assert intent is not None and intent.kind == "planning"
 
 
-async def test_returns_none_on_unparseable_output():
-    provider = FakeLlmProvider(completion="not json at all")
-    d = LlmIntentDetector(_router(provider))
-    assert await d.detect("anything") is None
+async def test_none_kind_returns_none():
+    provider = FakeLlmProvider(completion='{"kind": "none", "query": ""}')
+    assert await LlmIntentDetector(_router(provider)).detect("hello everyone") is None
 
 
-async def test_tolerates_json_wrapped_in_prose():
-    provider = FakeLlmProvider(completion='Sure: {"is_search": true, "query": "x y"} done')
-    d = LlmIntentDetector(_router(provider))
-    intent = await d.detect("q")
-    assert intent is not None and intent.query == "x y"
+async def test_unparseable_returns_none():
+    provider = FakeLlmProvider(completion="not json")
+    assert await LlmIntentDetector(_router(provider)).detect("anything") is None
+
+
+async def test_json_in_prose_ok():
+    provider = FakeLlmProvider(completion='ok: {"kind": "search", "query": "x y"} end')
+    intent = await LlmIntentDetector(_router(provider)).detect("q")
+    assert intent is not None and intent.kind == "search" and intent.query == "x y"
