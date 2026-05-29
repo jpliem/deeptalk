@@ -1,0 +1,24 @@
+# Brainstorm visual companion scratch
+.superpowers/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Node / UI
+node_modules/
+dist/
+build/
+
+# Models / audio / data
+*.wav
+*.bin
+*.safetensors
+data/
+sessions/
+
+# OS
+.DS_Store
