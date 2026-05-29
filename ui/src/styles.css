@@ -199,3 +199,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .card { animation: none; }
 }
+
+.line.clickable { cursor: pointer; }
+.line.clickable:hover { border: 1px solid var(--accent); }

@@ -32,7 +32,7 @@ export default function App() {
       <div className="panes">
         <section className="pane">
           <h2 className="pane-title">Transcript</h2>
-          <TranscriptPane events={events} />
+          <TranscriptPane events={events} onLineClick={handleAsk} />
         </section>
         <section className="pane">
           <h2 className="pane-title">Insights</h2>

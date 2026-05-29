@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { TranscriptPane } from '../TranscriptPane'
 import type { TranscriptEvent } from '../types'
 
@@ -35,5 +36,12 @@ describe('TranscriptPane', () => {
   it('marks interim (non-final) lines', () => {
     const { container } = render(<TranscriptPane events={[ev({ is_final: false })]} />)
     expect(container.querySelector('.line.interim')).toBeTruthy()
+  })
+
+  it('calls onLineClick with the line text when a line is clicked', async () => {
+    const onLineClick = vi.fn()
+    render(<TranscriptPane events={[ev({ text: 'click me' })]} onLineClick={onLineClick} />)
+    await userEvent.click(screen.getByText('click me'))
+    expect(onLineClick).toHaveBeenCalledWith('click me')
   })
 })

@@ -1,13 +1,24 @@
 import type { TranscriptEvent } from './types'
 
-export function TranscriptPane({ events }: { events: TranscriptEvent[] }) {
+export function TranscriptPane({
+  events,
+  onLineClick,
+}: {
+  events: TranscriptEvent[]
+  onLineClick?: (text: string) => void
+}) {
   if (events.length === 0) {
     return <p className="transcript-empty">Listening…</p>
   }
   return (
     <ol className="transcript">
       {events.map((e, i) => (
-        <li key={i} className={`line ${e.is_final ? 'final' : 'interim'}`}>
+        <li
+          key={i}
+          className={`line ${e.is_final ? 'final' : 'interim'}${onLineClick ? ' clickable' : ''}`}
+          onClick={onLineClick ? () => onLineClick(e.text) : undefined}
+          title={onLineClick ? 'Search this line' : undefined}
+        >
           {e.speaker != null && <span className="speaker">S{e.speaker}</span>}
           <span className="text">{e.text}</span>
         </li>
