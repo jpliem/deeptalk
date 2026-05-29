@@ -3,6 +3,7 @@ name = "deeptalk"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=0.105.2",
     "fastapi",
     "numpy>=2.4.6",
     "sounddevice>=0.5.5",
