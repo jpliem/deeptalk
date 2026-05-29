@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 
 from deeptalk.bus import EventBus
@@ -32,13 +33,27 @@ class Orchestrator:
         return intent
 
 
+_log = logging.getLogger("deeptalk.orchestrator")
+
+
 async def run_orchestrator(bus: EventBus, orchestrator: Orchestrator, session_id: str) -> None:
     """Consume the transcript bus; handle each final line for this session."""
     q = bus.subscribe()
+    tasks: set[asyncio.Task] = set()
+
+    def _on_done(task: asyncio.Task) -> None:
+        tasks.discard(task)
+        if not task.cancelled() and task.exception() is not None:
+            _log.warning("orchestrator handle failed: %r", task.exception())
+
     try:
         while True:
             ev = await q.get()
             if ev.session_id == session_id and getattr(ev, "is_final", False):
-                asyncio.create_task(orchestrator.handle(ev.text))
+                task = asyncio.create_task(orchestrator.handle(ev.text))
+                tasks.add(task)
+                task.add_done_callback(_on_done)
     finally:
         bus.unsubscribe(q)
+        for task in tasks:
+            task.cancel()
