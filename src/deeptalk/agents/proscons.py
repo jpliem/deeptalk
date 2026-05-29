@@ -32,6 +32,7 @@ async def run_proscons(
     store: ArtifactStore,
     bus: EventBus,
     now: float,
+    timeout: float = 30.0,
 ) -> Artifact:
     return await run_completion_agent(
         agent=AGENT,
@@ -43,4 +44,5 @@ async def run_proscons(
         now=now,
         prompt=_PROMPT.format(query=query),
         build_payload=_payload,
+        timeout=timeout,
     )

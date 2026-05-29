@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
@@ -33,11 +34,13 @@ async def run_completion_agent(
     now: float,
     prompt: str,
     build_payload: Callable[[dict[str, Any]], dict[str, Any]],
+    timeout: float = 30.0,
 ) -> Artifact:
     """Run a JSON-output completion agent: call -> parse -> artifact -> persist/publish."""
     try:
-        providers = router.chain_for(agent)
-        raw = await run_with_fallback(providers, lambda p: p.complete(prompt))
+        async with asyncio.timeout(timeout):
+            providers = router.chain_for(agent)
+            raw = await run_with_fallback(providers, lambda p: p.complete(prompt))
         data = parse_json(raw)
         if data is None:
             raise ValueError("could not parse model output")
@@ -50,7 +53,18 @@ async def run_completion_agent(
             payload=build_payload(data),
             created_at=now,
         )
-    except Exception as error:  # noqa: BLE001 - surfaced as an error card
+    except TimeoutError:
+        artifact = Artifact(
+            id=uuid.uuid4().hex,
+            session_id=session_id,
+            agent=agent,
+            status="error",
+            title=query,
+            payload={},
+            created_at=now,
+            error=f"agent timed out after {timeout}s",
+        )
+    except Exception as error:  # noqa: BLE001
         cause = error.__cause__ or error
         artifact = Artifact(
             id=uuid.uuid4().hex,

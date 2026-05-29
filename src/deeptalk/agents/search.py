@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 
 from deeptalk.artifacts.models import Artifact
@@ -17,11 +18,13 @@ async def run_search(
     store: ArtifactStore,
     bus: EventBus,
     now: float,
+    timeout: float = 30.0,
 ) -> Artifact:
     """Run a web search for `query`, persist + publish the resulting Artifact."""
     try:
-        providers = router.chain_for(AGENT)
-        result = await run_with_fallback(providers, lambda p: p.search_answer(query))
+        async with asyncio.timeout(timeout):
+            providers = router.chain_for(AGENT)
+            result = await run_with_fallback(providers, lambda p: p.search_answer(query))
         artifact = Artifact(
             id=uuid.uuid4().hex,
             session_id=session_id,
@@ -35,9 +38,7 @@ async def run_search(
             },
             created_at=now,
         )
-    except Exception as error:  # noqa: BLE001 - surfaced to the user as an error card
-        # Unwrap AllProvidersFailed so the user sees the root cause message.
-        root = error.__cause__ if error.__cause__ is not None else error
+    except TimeoutError:
         artifact = Artifact(
             id=uuid.uuid4().hex,
             session_id=session_id,
@@ -46,7 +47,19 @@ async def run_search(
             title=query,
             payload={},
             created_at=now,
-            error=str(root),
+            error=f"agent timed out after {timeout}s",
+        )
+    except Exception as error:  # noqa: BLE001
+        cause = error.__cause__ or error
+        artifact = Artifact(
+            id=uuid.uuid4().hex,
+            session_id=session_id,
+            agent=AGENT,
+            status="error",
+            title=query,
+            payload={},
+            created_at=now,
+            error=str(cause),
         )
     store.append(artifact)
     await bus.publish(artifact)

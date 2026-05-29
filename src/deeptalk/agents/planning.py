@@ -27,6 +27,7 @@ async def run_planning(
     store: ArtifactStore,
     bus: EventBus,
     now: float,
+    timeout: float = 30.0,
 ) -> Artifact:
     return await run_completion_agent(
         agent=AGENT,
@@ -38,4 +39,5 @@ async def run_planning(
         now=now,
         prompt=_PROMPT.format(query=query),
         build_payload=_payload,
+        timeout=timeout,
     )
