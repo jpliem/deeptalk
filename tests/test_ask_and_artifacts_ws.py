@@ -59,3 +59,28 @@ def test_artifacts_ws_filters_by_session(tmp_path):
         msg = ws.receive_json()
 
     assert msg["id"] == "keep"
+
+
+def test_ask_returns_done_and_persists(tmp_path):
+    deps = _deps(tmp_path)
+    app = create_app(**deps)
+    client = TestClient(app)
+
+    resp = client.post("/ask", json={"session_id": "s1", "query": "what is rust"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "done"
+
+    arts = deps["artifact_store"].all_artifacts("s1")
+    assert len(arts) == 1
+    assert arts[0].title == "what is rust"
+    assert "what is rust" in arts[0].payload["answer"]
+
+
+def test_ask_503_when_not_configured(tmp_path):
+    from deeptalk.transcript.store import TranscriptStore as TS
+
+    app = create_app(store=TS(str(tmp_path / "t.db")), bus=EventBus())  # no router/artifacts
+    client = TestClient(app)
+    resp = client.post("/ask", json={"session_id": "s1", "query": "q"})
+    assert resp.status_code == 503

@@ -6,8 +6,9 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from deeptalk.artifacts.store import ArtifactStore
 from deeptalk.bus import EventBus
@@ -52,6 +53,11 @@ async def _stream_session(send, backlog, bus, session_id):
         bus.unsubscribe(q)
 
 
+class AskRequest(BaseModel):
+    session_id: str
+    query: str
+
+
 def create_app(
     store: TranscriptStore,
     bus: EventBus,
@@ -92,6 +98,18 @@ def create_app(
                 )
             except WebSocketDisconnect:
                 pass
+
+    @app.post("/ask")
+    async def ask(req: AskRequest) -> dict[str, str]:
+        if router is None or artifact_store is None or artifact_bus is None:
+            raise HTTPException(status_code=503, detail="agents not configured")
+        from deeptalk.agents.search import run_search
+
+        clock = now_fn or _time.time
+        artifact = await run_search(
+            req.query, req.session_id, router, artifact_store, artifact_bus, clock()
+        )
+        return {"id": artifact.id, "status": artifact.status}
 
     # Mount the built UI LAST so /health and /ws/transcript take precedence.
     if ui_dir and Path(ui_dir).is_dir():

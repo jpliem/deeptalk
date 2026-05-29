@@ -7,9 +7,11 @@ from pathlib import Path
 
 import uvicorn
 
+from deeptalk.artifacts.store import ArtifactStore
 from deeptalk.bus import EventBus
 from deeptalk.config import Config
 from deeptalk.ingest import run_ingest
+from deeptalk.llm.factory import build_router
 from deeptalk.server.app import create_app
 from deeptalk.stt.factory import build_stt
 from deeptalk.transcript.store import TranscriptStore
@@ -19,6 +21,9 @@ def main() -> None:
     config = Config.from_env()
     store = TranscriptStore(config.db_path)
     bus = EventBus()
+    artifact_store = ArtifactStore(config.db_path)
+    artifact_bus = EventBus()
+    router = build_router(config)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -38,6 +43,9 @@ def main() -> None:
         bus=bus,
         lifespan=lifespan,
         ui_dir=str(ui_dist) if ui_dist.is_dir() else None,
+        artifact_store=artifact_store,
+        artifact_bus=artifact_bus,
+        router=router,
     )
     uvicorn.run(app, host=config.host, port=config.port)
 
