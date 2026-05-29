@@ -45,3 +45,25 @@ async def test_proscons_error_on_unparseable(tmp_path):
     art = await run_proscons("q", "s1", _router(provider, "proscons"), store, bus, now=2.0)
     assert art.status == "error"
     assert art.error
+
+
+from deeptalk.agents.planning import run_planning
+
+
+async def test_planning_builds_steps_artifact(tmp_path):
+    provider = FakeLlmProvider(completion='{"steps": ["set up repo", "add auth", "ship"]}')
+    store = ArtifactStore(str(tmp_path / "a.db"))
+    bus = EventBus()
+    art = await run_planning("build the auth system", "s1", _router(provider, "planning"), store, bus, now=7.0)
+
+    assert art.status == "done"
+    assert art.agent == "planning"
+    assert art.payload["steps"] == ["set up repo", "add auth", "ship"]
+
+
+async def test_planning_error_on_unparseable(tmp_path):
+    provider = FakeLlmProvider(completion="nope")
+    store = ArtifactStore(str(tmp_path / "a.db"))
+    bus = EventBus()
+    art = await run_planning("q", "s1", _router(provider, "planning"), store, bus, now=2.0)
+    assert art.status == "error"
