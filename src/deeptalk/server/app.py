@@ -32,8 +32,12 @@ async def stream_transcript(
         bus.unsubscribe(q)
 
 
-def create_app(store: TranscriptStore, bus: EventBus) -> FastAPI:
-    app = FastAPI(title="DeepTalk")
+def create_app(
+    store: TranscriptStore,
+    bus: EventBus,
+    lifespan: Callable[[FastAPI], Any] | None = None,
+) -> FastAPI:
+    app = FastAPI(title="DeepTalk", lifespan=lifespan)
 
     @app.get("/health")
     async def health() -> dict[str, str]:

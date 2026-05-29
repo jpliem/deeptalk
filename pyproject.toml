@@ -10,6 +10,12 @@ dependencies = [
     "websockets",
 ]
 
+[project.optional-dependencies]
+gpu = [
+    "torch ; sys_platform == 'linux'",
+    "nemo_toolkit[asr] ; sys_platform == 'linux'",
+]
+
 [dependency-groups]
 dev = [
     "pytest",

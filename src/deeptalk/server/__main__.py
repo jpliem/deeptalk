@@ -2,39 +2,37 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from pathlib import Path
+from contextlib import asynccontextmanager
 
 import uvicorn
 
 from deeptalk.bus import EventBus
+from deeptalk.config import Config
 from deeptalk.ingest import run_ingest
 from deeptalk.server.app import create_app
-from deeptalk.stt.fake import FakeSttLive
+from deeptalk.stt.factory import build_stt
 from deeptalk.transcript.store import TranscriptStore
-
-SESSION_ID = "demo"
-FIXTURE = str(Path(__file__).resolve().parents[3] / "fixtures" / "sample_meeting.jsonl")
 
 
 def main() -> None:
-    store = TranscriptStore("deeptalk-demo.db")
+    config = Config.from_env()
+    store = TranscriptStore(config.db_path)
     bus = EventBus()
-    app = create_app(store=store, bus=bus)
 
-    @app.on_event("startup")
-    async def _start_ingest() -> None:
-        stt = FakeSttLive(session_id=SESSION_ID, fixture_path=FIXTURE, realtime=True)
-        app.state.ingest_task = asyncio.create_task(run_ingest(stt, store, bus))
-
-    @app.on_event("shutdown")
-    async def _stop_ingest() -> None:
-        task = getattr(app.state, "ingest_task", None)
-        if task:
+    @asynccontextmanager
+    async def lifespan(app):
+        stt = build_stt(config)
+        task = asyncio.create_task(run_ingest(stt, store, bus))
+        app.state.ingest_task = task
+        try:
+            yield
+        finally:
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    app = create_app(store=store, bus=bus, lifespan=lifespan)
+    uvicorn.run(app, host=config.host, port=config.port)
 
 
 if __name__ == "__main__":
