@@ -203,3 +203,40 @@ body {
 
 .line.clickable { cursor: pointer; }
 .line.clickable:hover { border-color: var(--accent); }
+
+.proscons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.proscons h4 {
+  margin: 0 0 0.3rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.proscons .pros h4 { color: oklch(72% 0.15 150); }
+.proscons .cons h4 { color: oklch(72% 0.16 25); }
+
+.proscons ul,
+.card-steps {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.card-steps li { margin-bottom: 0.25rem; }
+
+.card-reco {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 30rem) {
+  .proscons { grid-template-columns: 1fr; }
+}
