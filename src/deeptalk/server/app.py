@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import time as _time
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
@@ -7,7 +9,9 @@ from typing import Any
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 
+from deeptalk.artifacts.store import ArtifactStore
 from deeptalk.bus import EventBus
+from deeptalk.llm.router import ModelRouter
 from deeptalk.transcript.store import TranscriptStore
 
 
@@ -34,11 +38,29 @@ async def stream_transcript(
         bus.unsubscribe(q)
 
 
+async def _stream_session(send, backlog, bus, session_id):
+    for item in backlog:
+        if item.session_id == session_id:
+            await send(item.to_dict())
+    q = bus.subscribe()
+    try:
+        while True:
+            item = await q.get()
+            if item.session_id == session_id:
+                await send(item.to_dict())
+    finally:
+        bus.unsubscribe(q)
+
+
 def create_app(
     store: TranscriptStore,
     bus: EventBus,
     lifespan: Callable[[FastAPI], Any] | None = None,
     ui_dir: str | None = None,
+    artifact_store: ArtifactStore | None = None,
+    artifact_bus: EventBus | None = None,
+    router: ModelRouter | None = None,
+    now_fn: Callable[[], float] | None = None,
 ) -> FastAPI:
     app = FastAPI(title="DeepTalk", lifespan=lifespan)
 
@@ -54,6 +76,22 @@ def create_app(
             await stream_transcript(ws.send_json, store, bus, session_id)
         except WebSocketDisconnect:
             pass
+
+    if artifact_store is not None and artifact_bus is not None:
+
+        @app.websocket("/ws/artifacts")
+        async def ws_artifacts(ws: WebSocket) -> None:
+            session_id = ws.query_params.get("session_id", "default")
+            await ws.accept()
+            try:
+                await _stream_session(
+                    ws.send_json,
+                    artifact_store.all_artifacts(session_id),
+                    artifact_bus,
+                    session_id,
+                )
+            except WebSocketDisconnect:
+                pass
 
     # Mount the built UI LAST so /health and /ws/transcript take precedence.
     if ui_dir and Path(ui_dir).is_dir():
