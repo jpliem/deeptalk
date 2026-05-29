@@ -46,3 +46,25 @@ async def test_dispatch_unknown_kind_noops(tmp_path):
     fire = make_fire(router, store, bus, "s1", now=lambda: 1.0)
     await fire(Intent(kind="mystery", query="x", topic="t"))
     assert store.all_artifacts("s1") == []
+
+
+from deeptalk.cost.tracker import CostTracker
+
+
+async def test_budget_cap_emits_system_artifact(tmp_path):
+    store, bus, router = _ctx(tmp_path)
+    tracker = CostTracker(max_calls=1)
+    fire = make_fire(router, store, bus, "s1", now=lambda: 1.0, tracker=tracker)
+
+    from deeptalk.intent.models import Intent
+
+    await fire(Intent(kind="search", query="q1", topic="t1"))
+    await fire(Intent(kind="search", query="q2", topic="t2"))
+
+    arts = store.all_artifacts("s1")
+    agents = [a.agent for a in arts]
+    assert "search" in agents
+    assert "system" in agents
+    budget = [a for a in arts if a.agent == "system"][0]
+    assert budget.status == "error"
+    assert "budget" in budget.error.lower()

@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from deeptalk.artifacts.store import ArtifactStore
 from deeptalk.bus import EventBus
 from deeptalk.diarize.base import Diarizer
+from deeptalk.gpu.lease import GpuLease
 from deeptalk.llm.router import ModelRouter
 from deeptalk.transcript.events import TranscriptEvent
 from deeptalk.transcript.store import TranscriptStore
@@ -76,6 +77,7 @@ def create_app(
     wiki_store: "WikiStore | None" = None,
     diarizer: "Diarizer | None" = None,
     recording_path: str | None = None,
+    gpu_lease: "GpuLease | None" = None,
 ) -> FastAPI:
     app = FastAPI(title="DeepTalk", lifespan=lifespan)
 
@@ -133,7 +135,11 @@ def create_app(
             wiki_store.save(wiki)
 
             if diarizer is not None and recording_path and _Path(recording_path).is_file():
-                segments = await diarizer.diarize(recording_path)
+                if gpu_lease is not None:
+                    async with gpu_lease.hold():
+                        segments = await diarizer.diarize(recording_path)
+                else:
+                    segments = await diarizer.diarize(recording_path)
                 for seg in segments:
                     store.append(
                         TranscriptEvent(

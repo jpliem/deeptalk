@@ -11,6 +11,8 @@ import uvicorn
 from deeptalk.artifacts.store import ArtifactStore
 from deeptalk.bus import EventBus
 from deeptalk.config import Config
+from deeptalk.cost.tracker import CostTracker
+from deeptalk.gpu.lease import GpuLease
 from deeptalk.ingest import run_ingest
 from deeptalk.intent.factory import build_detector
 from deeptalk.llm.factory import build_router
@@ -36,10 +38,16 @@ def main() -> None:
 
         diarizer = VibeVoiceDiarizer()
 
+    cost_tracker = CostTracker(config.max_agent_calls)
+    gpu_lease = GpuLease()
+
     @asynccontextmanager
     async def lifespan(app):
         detector = build_detector(config, router)
-        fire = make_fire(router, artifact_store, artifact_bus, config.session_id, time.time)
+        fire = make_fire(
+            router, artifact_store, artifact_bus, config.session_id, time.time,
+            tracker=cost_tracker, timeout=config.agent_timeout,
+        )
         orchestrator = Orchestrator(detector, fire)
 
         stt = build_stt(config)
@@ -67,6 +75,7 @@ def main() -> None:
         wiki_store=wiki_store,
         diarizer=diarizer,
         recording_path=config.recording_path,
+        gpu_lease=gpu_lease,
     )
     uvicorn.run(app, host=config.host, port=config.port)
 

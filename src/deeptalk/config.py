@@ -24,6 +24,8 @@ class Config:
     intent_detector: str = "heuristic"  # "heuristic" | "llm"
     diarize: str = "off"  # "off" | "vibevoice"
     recording_path: str | None = None
+    max_agent_calls: int = 50  # per-session cap; -1 = unlimited
+    agent_timeout: float = 30.0
     host: str = "127.0.0.1"
     port: int = 8000
 
@@ -42,6 +44,8 @@ class Config:
             intent_detector=e.get("DEEPTALK_INTENT", "heuristic"),
             diarize=e.get("DEEPTALK_DIARIZE", "off"),
             recording_path=e.get("DEEPTALK_RECORDING"),
+            max_agent_calls=int(e.get("DEEPTALK_MAX_AGENT_CALLS", "50")),
+            agent_timeout=float(e.get("DEEPTALK_AGENT_TIMEOUT", "30")),
             host=e.get("DEEPTALK_HOST", "127.0.0.1"),
             port=int(e.get("DEEPTALK_PORT", "8000")),
         )
