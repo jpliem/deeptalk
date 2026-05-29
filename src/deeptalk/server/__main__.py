@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 
@@ -31,7 +32,13 @@ def main() -> None:
             with contextlib.suppress(asyncio.CancelledError):
                 await task
 
-    app = create_app(store=store, bus=bus, lifespan=lifespan)
+    ui_dist = Path(__file__).resolve().parents[3] / "ui" / "dist"
+    app = create_app(
+        store=store,
+        bus=bus,
+        lifespan=lifespan,
+        ui_dir=str(ui_dist) if ui_dist.is_dir() else None,
+    )
     uvicorn.run(app, host=config.host, port=config.port)
 
 
