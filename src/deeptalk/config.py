@@ -21,6 +21,7 @@ class Config:
     audio_file: str | None = None
     search_provider: str = "fake"  # "fake" | "anthropic"
     anthropic_model: str = "claude-sonnet-4-6"
+    intent_detector: str = "heuristic"  # "heuristic" | "llm"
     host: str = "127.0.0.1"
     port: int = 8000
 
@@ -36,6 +37,7 @@ class Config:
             audio_file=e.get("DEEPTALK_AUDIO_FILE"),
             search_provider=e.get("DEEPTALK_SEARCH_PROVIDER", "fake"),
             anthropic_model=e.get("DEEPTALK_ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+            intent_detector=e.get("DEEPTALK_INTENT", "heuristic"),
             host=e.get("DEEPTALK_HOST", "127.0.0.1"),
             port=int(e.get("DEEPTALK_PORT", "8000")),
         )
