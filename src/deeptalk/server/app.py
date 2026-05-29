@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import time as _time
 from collections.abc import Awaitable, Callable
 from pathlib import Path
