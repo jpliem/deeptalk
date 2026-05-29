@@ -7,7 +7,9 @@ _JSON_STUB = (
     '{"is_search": false, "kind": "none", "query": "", '
     '"pros": ["fake pro"], "cons": ["fake con"], '
     '"recommendation": "fake recommendation", '
-    '"steps": ["fake step one", "fake step two"]}'
+    '"steps": ["fake step one", "fake step two"], '
+    '"topics": ["fake topic"], "decisions": ["fake decision"], '
+    '"action_items": ["fake action item"]}'
 )
 
 
