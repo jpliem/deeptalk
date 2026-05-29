@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time as _time
 from collections.abc import Awaitable, Callable
-from pathlib import Path
+from pathlib import Path as _Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -11,8 +11,11 @@ from pydantic import BaseModel
 
 from deeptalk.artifacts.store import ArtifactStore
 from deeptalk.bus import EventBus
+from deeptalk.diarize.base import Diarizer
 from deeptalk.llm.router import ModelRouter
+from deeptalk.transcript.events import TranscriptEvent
 from deeptalk.transcript.store import TranscriptStore
+from deeptalk.wiki.store import WikiStore
 
 
 async def stream_transcript(
@@ -57,6 +60,10 @@ class AskRequest(BaseModel):
     query: str
 
 
+class FinalizeRequest(BaseModel):
+    session_id: str
+
+
 def create_app(
     store: TranscriptStore,
     bus: EventBus,
@@ -66,6 +73,9 @@ def create_app(
     artifact_bus: EventBus | None = None,
     router: ModelRouter | None = None,
     now_fn: Callable[[], float] | None = None,
+    wiki_store: "WikiStore | None" = None,
+    diarizer: "Diarizer | None" = None,
+    recording_path: str | None = None,
 ) -> FastAPI:
     app = FastAPI(title="DeepTalk", lifespan=lifespan)
 
@@ -110,8 +120,42 @@ def create_app(
         )
         return {"id": artifact.id, "status": artifact.status}
 
+    if wiki_store is not None and router is not None and artifact_store is not None:
+
+        @app.post("/finalize")
+        async def finalize(req: FinalizeRequest) -> dict[str, str]:
+            from deeptalk.wiki.builder import build_wiki
+
+            clock = now_fn or _time.time
+            lines = [e.text for e in store.all_events(req.session_id) if e.is_final]
+            titles = [a.title for a in artifact_store.all_artifacts(req.session_id)]
+            wiki = await build_wiki(req.session_id, lines, titles, router, clock())
+            wiki_store.save(wiki)
+
+            if diarizer is not None and recording_path and _Path(recording_path).is_file():
+                segments = await diarizer.diarize(recording_path)
+                for seg in segments:
+                    store.append(
+                        TranscriptEvent(
+                            session_id=req.session_id,
+                            ts=seg.start,
+                            text=seg.text,
+                            is_final=True,
+                            source="diarized",
+                            speaker=seg.speaker,
+                        )
+                    )
+            return {"status": "ok"}
+
+        @app.get("/wiki")
+        async def get_wiki(session_id: str = "default") -> dict:
+            wiki = wiki_store.get(session_id)
+            if wiki is None:
+                raise HTTPException(status_code=404, detail="no wiki for session")
+            return wiki.to_dict()
+
     # Mount the built UI LAST so /health and /ws/transcript take precedence.
-    if ui_dir and Path(ui_dir).is_dir():
+    if ui_dir and _Path(ui_dir).is_dir():
         app.mount("/", StaticFiles(directory=ui_dir, html=True), name="ui")
 
     return app

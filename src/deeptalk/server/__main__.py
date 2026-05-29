@@ -19,6 +19,7 @@ from deeptalk.server.app import create_app
 from deeptalk.server.dispatch import make_fire
 from deeptalk.stt.factory import build_stt
 from deeptalk.transcript.store import TranscriptStore
+from deeptalk.wiki.store import WikiStore
 
 
 def main() -> None:
@@ -28,6 +29,12 @@ def main() -> None:
     artifact_store = ArtifactStore(config.db_path)
     artifact_bus = EventBus()
     router = build_router(config)
+    wiki_store = WikiStore(config.db_path)
+    diarizer = None
+    if config.diarize == "vibevoice":
+        from deeptalk.diarize.vibevoice import VibeVoiceDiarizer
+
+        diarizer = VibeVoiceDiarizer()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -57,6 +64,9 @@ def main() -> None:
         artifact_store=artifact_store,
         artifact_bus=artifact_bus,
         router=router,
+        wiki_store=wiki_store,
+        diarizer=diarizer,
+        recording_path=config.recording_path,
     )
     uvicorn.run(app, host=config.host, port=config.port)
 

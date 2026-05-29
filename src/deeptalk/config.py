@@ -22,6 +22,8 @@ class Config:
     search_provider: str = "fake"  # "fake" | "anthropic"
     anthropic_model: str = "claude-sonnet-4-6"
     intent_detector: str = "heuristic"  # "heuristic" | "llm"
+    diarize: str = "off"  # "off" | "vibevoice"
+    recording_path: str | None = None
     host: str = "127.0.0.1"
     port: int = 8000
 
@@ -38,6 +40,8 @@ class Config:
             search_provider=e.get("DEEPTALK_SEARCH_PROVIDER", "fake"),
             anthropic_model=e.get("DEEPTALK_ANTHROPIC_MODEL", "claude-sonnet-4-6"),
             intent_detector=e.get("DEEPTALK_INTENT", "heuristic"),
+            diarize=e.get("DEEPTALK_DIARIZE", "off"),
+            recording_path=e.get("DEEPTALK_RECORDING"),
             host=e.get("DEEPTALK_HOST", "127.0.0.1"),
             port=int(e.get("DEEPTALK_PORT", "8000")),
         )
