@@ -52,3 +52,16 @@ class AnthropicProvider:
                     if url:
                         citations.append(Citation(title=title, url=url))
         return LlmResult(text="".join(text_parts), citations=citations, model=self._model)
+
+    async def complete(self, prompt: str) -> str:
+        from anthropic import AsyncAnthropic
+
+        client = AsyncAnthropic(api_key=self._api_key) if self._api_key else AsyncAnthropic()
+        resp = await client.messages.create(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return "".join(
+            block.text for block in resp.content if getattr(block, "type", None) == "text"
+        )

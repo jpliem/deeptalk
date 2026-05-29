@@ -12,10 +12,12 @@ class FakeLlmProvider:
         name: str = "fake",
         answer: str | None = None,
         citations: list[Citation] | None = None,
+        completion: str | None = None,
     ) -> None:
         self._name = name
         self._answer = answer
         self._citations = citations
+        self._completion = completion
 
     @property
     def name(self) -> str:
@@ -29,3 +31,6 @@ class FakeLlmProvider:
             else [Citation(title="Example", url="https://example.com")]
         )
         return LlmResult(text=text, citations=citations, model="fake")
+
+    async def complete(self, prompt: str) -> str:
+        return self._completion if self._completion is not None else f"(fake) {prompt}"

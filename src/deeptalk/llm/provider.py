@@ -21,3 +21,7 @@ class LlmProvider(Protocol):
     async def search_answer(self, query: str) -> LlmResult:
         """Answer a query using web search; return text + citations."""
         ...
+
+    async def complete(self, prompt: str) -> str:
+        """General text completion (no web search)."""
+        ...
