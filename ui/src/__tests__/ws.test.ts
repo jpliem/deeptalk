@@ -1,16 +1,23 @@
 import { describe, it, expect } from 'vitest'
-import { resolveWsUrl } from '../ws'
+import { resolveWsUrl, wsUrl } from '../ws'
 
-describe('resolveWsUrl', () => {
-  it('builds the url from an explicit base', () => {
-    expect(resolveWsUrl('demo', 'ws://127.0.0.1:8000')).toBe(
-      'ws://127.0.0.1:8000/ws/transcript?session_id=demo',
+describe('wsUrl', () => {
+  it('builds an arbitrary ws path with session', () => {
+    expect(wsUrl('/ws/artifacts', 'demo', 'ws://x')).toBe(
+      'ws://x/ws/artifacts?session_id=demo',
     )
   })
-
   it('url-encodes the session id', () => {
-    expect(resolveWsUrl('a b', 'ws://x')).toBe(
+    expect(wsUrl('/ws/transcript', 'a b', 'ws://x')).toBe(
       'ws://x/ws/transcript?session_id=a%20b',
+    )
+  })
+})
+
+describe('resolveWsUrl (transcript back-compat)', () => {
+  it('builds the transcript url from an explicit base', () => {
+    expect(resolveWsUrl('demo', 'ws://127.0.0.1:8000')).toBe(
+      'ws://127.0.0.1:8000/ws/transcript?session_id=demo',
     )
   })
 })
