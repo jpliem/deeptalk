@@ -67,6 +67,7 @@ body {
   align-items: baseline;
   padding: 0.5rem 0.75rem;
   background: var(--surface);
+  border: 1px solid transparent;
   border-radius: 0.5rem;
   line-height: 1.5;
   animation: rise 200ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -201,4 +202,4 @@ body {
 }
 
 .line.clickable { cursor: pointer; }
-.line.clickable:hover { border: 1px solid var(--accent); }
+.line.clickable:hover { border-color: var(--accent); }
