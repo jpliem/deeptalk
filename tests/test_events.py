@@ -25,3 +25,15 @@ def test_event_round_trips_through_dict():
         session_id="s1", ts=2.0, text="hi", is_final=True, source="diarized", speaker=3, span_id="sp1"
     )
     assert TranscriptEvent.from_dict(ev.to_dict()) == ev
+
+
+def test_event_source_accepts_diarized():
+    ev = TranscriptEvent(session_id="s1", ts=0.0, text="x", is_final=True, source="diarized")
+    assert ev.source == "diarized"
+
+
+def test_event_source_type_is_literal():
+    import typing
+    from deeptalk.transcript.events import TranscriptEvent as TE
+    hints = typing.get_type_hints(TE, include_extras=True)
+    assert typing.get_args(hints["source"]) == ("live", "diarized")

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass(frozen=True)
@@ -12,7 +12,7 @@ class TranscriptEvent:
     ts: float
     text: str
     is_final: bool
-    source: str = "live"  # "live" | "diarized"
+    source: Literal["live", "diarized"] = "live"
     speaker: int | None = None
     span_id: str | None = None
 
