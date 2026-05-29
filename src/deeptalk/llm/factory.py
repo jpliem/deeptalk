@@ -16,4 +16,8 @@ def build_router(config: Config) -> ModelRouter:
         providers["anthropic"] = AnthropicProvider(model=config.anthropic_model)
         chain = ["anthropic"]
 
-    return ModelRouter(providers=providers, routes={"search": chain, "intent": chain}, default=chain)
+    return ModelRouter(
+        providers=providers,
+        routes={"search": chain, "intent": chain, "proscons": chain, "planning": chain},
+        default=chain,
+    )

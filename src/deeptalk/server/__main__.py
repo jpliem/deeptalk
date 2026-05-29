@@ -8,7 +8,6 @@ from pathlib import Path
 
 import uvicorn
 
-from deeptalk.agents.search import run_search
 from deeptalk.artifacts.store import ArtifactStore
 from deeptalk.bus import EventBus
 from deeptalk.config import Config
@@ -17,6 +16,7 @@ from deeptalk.intent.factory import build_detector
 from deeptalk.llm.factory import build_router
 from deeptalk.orchestrator import Orchestrator, run_orchestrator
 from deeptalk.server.app import create_app
+from deeptalk.server.dispatch import make_fire
 from deeptalk.stt.factory import build_stt
 from deeptalk.transcript.store import TranscriptStore
 
@@ -32,12 +32,7 @@ def main() -> None:
     @asynccontextmanager
     async def lifespan(app):
         detector = build_detector(config, router)
-
-        async def fire(intent):
-            await run_search(
-                intent.query, config.session_id, router, artifact_store, artifact_bus, time.time()
-            )
-
+        fire = make_fire(router, artifact_store, artifact_bus, config.session_id, time.time)
         orchestrator = Orchestrator(detector, fire)
 
         stt = build_stt(config)
