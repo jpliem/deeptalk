@@ -3,6 +3,13 @@ from __future__ import annotations
 from deeptalk.artifacts.models import Citation
 from deeptalk.llm.provider import LlmResult
 
+_JSON_STUB = (
+    '{"is_search": false, "kind": "none", "query": "", '
+    '"pros": ["fake pro"], "cons": ["fake con"], '
+    '"recommendation": "fake recommendation", '
+    '"steps": ["fake step one", "fake step two"]}'
+)
+
 
 class FakeLlmProvider:
     """Deterministic provider for dev and tests — no network, no key."""
@@ -33,4 +40,8 @@ class FakeLlmProvider:
         return LlmResult(text=text, citations=citations, model="fake")
 
     async def complete(self, prompt: str) -> str:
-        return self._completion if self._completion is not None else f"(fake) {prompt}"
+        if self._completion is not None:
+            return self._completion
+        if "json" in prompt.lower():
+            return _JSON_STUB
+        return f"(fake) {prompt}"

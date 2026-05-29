@@ -22,3 +22,11 @@ def test_anthropic_has_complete():
     from deeptalk.llm.anthropic_provider import AnthropicProvider
 
     assert callable(getattr(AnthropicProvider, "complete", None))
+
+
+async def test_fake_complete_returns_json_stub_for_json_prompts():
+    import json
+    p = FakeLlmProvider()
+    out = await p.complete("Respond ONLY as JSON with pros and cons")
+    data = json.loads(out)
+    assert "pros" in data and "cons" in data and "steps" in data
