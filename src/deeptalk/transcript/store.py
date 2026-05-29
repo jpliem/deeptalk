@@ -23,6 +23,9 @@ class TranscriptStore:
     """Append-only persistence for transcript events. The single source of truth."""
 
     def __init__(self, db_path: str) -> None:
+        # check_same_thread=False: the ASGI server may read this connection from a
+        # worker thread different from the one that opened it. Safe here because
+        # writes come only from the single ingest task on the event-loop thread.
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
