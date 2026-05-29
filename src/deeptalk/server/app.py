@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.staticfiles import StaticFiles
 
 from deeptalk.bus import EventBus
 from deeptalk.transcript.store import TranscriptStore
@@ -36,6 +38,7 @@ def create_app(
     store: TranscriptStore,
     bus: EventBus,
     lifespan: Callable[[FastAPI], Any] | None = None,
+    ui_dir: str | None = None,
 ) -> FastAPI:
     app = FastAPI(title="DeepTalk", lifespan=lifespan)
 
@@ -51,5 +54,9 @@ def create_app(
             await stream_transcript(ws.send_json, store, bus, session_id)
         except WebSocketDisconnect:
             pass
+
+    # Mount the built UI LAST so /health and /ws/transcript take precedence.
+    if ui_dir and Path(ui_dir).is_dir():
+        app.mount("/", StaticFiles(directory=ui_dir, html=True), name="ui")
 
     return app
