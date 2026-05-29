@@ -43,4 +43,29 @@ describe('ArtifactCard', () => {
     expect(screen.getByText('api down')).toBeInTheDocument()
     expect(container.querySelector('.card.error')).toBeTruthy()
   })
+
+  it('renders pros, cons, and recommendation for a proscons artifact', () => {
+    render(
+      <ArtifactCard
+        artifact={art({
+          agent: 'proscons',
+          title: 'kafka or rabbitmq',
+          payload: { pros: ['fast'], cons: ['complex'], recommendation: 'use kafka' },
+        })}
+      />,
+    )
+    expect(screen.getByText('fast')).toBeInTheDocument()
+    expect(screen.getByText('complex')).toBeInTheDocument()
+    expect(screen.getByText(/use kafka/)).toBeInTheDocument()
+  })
+
+  it('renders ordered steps for a planning artifact', () => {
+    render(
+      <ArtifactCard
+        artifact={art({ agent: 'planning', title: 'build auth', payload: { steps: ['one', 'two'] } })}
+      />,
+    )
+    expect(screen.getByText('one')).toBeInTheDocument()
+    expect(screen.getByText('two')).toBeInTheDocument()
+  })
 })

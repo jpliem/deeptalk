@@ -13,10 +13,14 @@ export interface Citation {
   url: string
 }
 
-export interface SearchPayload {
+export interface ArtifactPayload {
   answer?: string
   citations?: Citation[]
   model?: string
+  pros?: string[]
+  cons?: string[]
+  recommendation?: string
+  steps?: string[]
 }
 
 export interface Artifact {
@@ -25,7 +29,7 @@ export interface Artifact {
   agent: string
   status: 'done' | 'error'
   title: string
-  payload: SearchPayload
+  payload: ArtifactPayload
   created_at: number
   latency_ms: number | null
   error: string | null
