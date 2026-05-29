@@ -38,6 +38,9 @@ class TranscriptStore:
         self._conn.commit()
         return int(cur.lastrowid)
 
+    def close(self) -> None:
+        self._conn.close()
+
     def all_events(self, session_id: str) -> list[TranscriptEvent]:
         rows = self._conn.execute(
             "SELECT session_id, ts, text, is_final, source, speaker, span_id "

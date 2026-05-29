@@ -43,3 +43,11 @@ def test_data_persists_across_instances(tmp_path):
     db = str(tmp_path / "t.db")
     TranscriptStore(db).append(_ev("persisted", 0.0))
     assert [e.text for e in TranscriptStore(db).all_events("s1")] == ["persisted"]
+
+
+def test_close_releases_connection(tmp_path):
+    store = TranscriptStore(str(tmp_path / "t.db"))
+    store.close()
+    import pytest, sqlite3
+    with pytest.raises(sqlite3.ProgrammingError):
+        store.append(_ev("after close", 0.0))
