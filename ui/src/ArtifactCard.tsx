@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import mermaid from 'mermaid'
 import type { Artifact } from './types'
 
 function SearchBody({ a }: { a: Artifact }) {
@@ -66,12 +65,21 @@ function MockupBody({ a }: { a: Artifact }) {
   const diagram = a.payload.diagram ?? ''
 
   useEffect(() => {
-    if (!ref.current || !diagram) return
-    try {
-      mermaid.initialize({ startOnLoad: false, theme: 'dark' })
-      mermaid.run({ nodes: [ref.current] })
-    } catch {
-      // leave the raw mermaid source visible as a fallback
+    const node = ref.current
+    if (!node || !diagram) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const mermaid = (await import('mermaid')).default
+        if (cancelled) return
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' })
+        await mermaid.run({ nodes: [node] })
+      } catch {
+        // leave the raw mermaid source visible as a fallback
+      }
+    })()
+    return () => {
+      cancelled = true
     }
   }, [diagram])
 
