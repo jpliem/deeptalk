@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from deeptalk.intent.models import Intent, normalize_topic
 
+_MOCKUP_SIGNALS = (
+    "mockup", "wireframe", "diagram", "sketch", "flowchart",
+    "draw the", "draw a", "what should the ui", "screen layout",
+    "lay out the screen", "ui look like",
+)
 _PLANNING_SIGNALS = (
     "how do we build", "how do we implement", "what are the steps", "what's the plan",
     "lay out", "outline the", "break down", "roadmap", "let's plan", "lets plan",
@@ -20,6 +25,8 @@ _QUESTION_LEADS = (
 
 def _classify(low: str, line: str) -> str | None:
     padded = f" {low} "
+    if any(sig in low for sig in _MOCKUP_SIGNALS):
+        return "mockup"
     if any(sig in low for sig in _PLANNING_SIGNALS):
         return "planning"
     if any(sig in padded for sig in _DEBATE_SIGNALS):

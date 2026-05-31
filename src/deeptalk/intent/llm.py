@@ -6,15 +6,16 @@ import re
 from deeptalk.intent.models import Intent, normalize_topic
 from deeptalk.llm.router import ModelRouter, run_with_fallback
 
-_VALID_KINDS = ("search", "debate", "planning")
+_VALID_KINDS = ("search", "debate", "planning", "mockup")
 
 _PROMPT = (
     "Classify a line from a meeting transcript into one kind:\n"
     "- search: a question or fact worth looking up\n"
     "- debate: a decision between options / pros and cons\n"
     "- planning: a goal that needs a plan or steps\n"
+    "- mockup: a UI or system design worth sketching as a diagram\n"
     "- none: anything else\n"
-    'Respond ONLY as JSON: {{"kind": "search|debate|planning|none", '
+    'Respond ONLY as JSON: {{"kind": "search|debate|planning|mockup|none", '
     '"query": "<concise topic/query>"}}.\n\nLine: {text}'
 )
 

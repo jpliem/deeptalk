@@ -36,3 +36,9 @@ async def test_json_in_prose_ok():
     provider = FakeLlmProvider(completion='ok: {"kind": "search", "query": "x y"} end')
     intent = await LlmIntentDetector(_router(provider)).detect("q")
     assert intent is not None and intent.kind == "search" and intent.query == "x y"
+
+
+async def test_classifies_mockup():
+    provider = FakeLlmProvider(completion='{"kind": "mockup", "query": "dashboard layout"}')
+    intent = await LlmIntentDetector(_router(provider)).detect("let's design the dashboard")
+    assert intent is not None and intent.kind == "mockup"

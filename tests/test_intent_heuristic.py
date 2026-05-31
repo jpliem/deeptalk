@@ -42,3 +42,18 @@ async def test_blank_is_none():
 
 def test_normalize_topic_stable():
     assert normalize_topic("Postgres or SQLite?") == normalize_topic("postgres  or sqlite")
+
+
+async def test_mockup_signal_is_mockup():
+    intent = await HeuristicIntentDetector().detect("can you mockup the dashboard")
+    assert intent is not None and intent.kind == "mockup"
+
+
+async def test_diagram_signal_is_mockup():
+    intent = await HeuristicIntentDetector().detect("draw a diagram of the auth flow")
+    assert intent is not None and intent.kind == "mockup"
+
+
+async def test_wireframe_signal_is_mockup():
+    intent = await HeuristicIntentDetector().detect("wireframe the login screen")
+    assert intent is not None and intent.kind == "mockup"
