@@ -18,6 +18,9 @@ def build_router(config: Config) -> ModelRouter:
 
     return ModelRouter(
         providers=providers,
-        routes={"search": chain, "intent": chain, "proscons": chain, "planning": chain, "wiki": chain},
+        routes={
+            "search": chain, "intent": chain, "proscons": chain,
+            "planning": chain, "wiki": chain, "mockup": chain,
+        },
         default=chain,
     )

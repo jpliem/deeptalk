@@ -9,7 +9,8 @@ _JSON_STUB = (
     '"recommendation": "fake recommendation", '
     '"steps": ["fake step one", "fake step two"], '
     '"topics": ["fake topic"], "decisions": ["fake decision"], '
-    '"action_items": ["fake action item"]}'
+    '"action_items": ["fake action item"], '
+    '"diagram": "graph TD; A[Idea]-->B[Mockup]", "caption": "fake diagram"}'
 )
 
 
