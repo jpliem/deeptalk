@@ -34,3 +34,23 @@ def test_build_stt_unknown():
     cfg = Config.from_env({"DEEPTALK_STT": "bogus"})
     with pytest.raises(ValueError):
         build_stt(cfg)
+
+
+from deeptalk.audio.recording import RecordingAudioSource
+
+
+def test_build_audio_source_wraps_with_recording_when_set(tmp_path):
+    cfg = Config.from_env({
+        "DEEPTALK_AUDIO": "file",
+        "DEEPTALK_AUDIO_FILE": str(tmp_path / "a.wav"),
+        "DEEPTALK_RECORDING": str(tmp_path / "rec.wav"),
+    })
+    src = build_audio_source(cfg)
+    assert isinstance(src, RecordingAudioSource)
+
+
+def test_build_audio_source_no_recording_by_default(tmp_path):
+    cfg = Config.from_env({"DEEPTALK_AUDIO": "file", "DEEPTALK_AUDIO_FILE": str(tmp_path / "a.wav")})
+    src = build_audio_source(cfg)
+    assert isinstance(src, FileAudioSource)
+    assert not isinstance(src, RecordingAudioSource)

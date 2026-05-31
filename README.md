@@ -102,6 +102,10 @@ curl -X POST localhost:8000/finalize -H 'content-type: application/json' -d '{"s
 ```
 In the browser, the **"Build wiki"** button does the same.
 
+> **Auto-recording with a live mic:** when `DEEPTALK_AUDIO=mic` and `DEEPTALK_RECORDING`
+> is set, the live audio source is automatically tee'd to that WAV as the session runs —
+> so `/finalize` can diarize it with no separate recording step needed.
+
 ## Using the app
 
 - **Talk** (or replay/transcribe) → questions/debates/plans in the conversation
@@ -133,7 +137,7 @@ In the browser, the **"Build wiki"** button does the same.
 | `DEEPTALK_ANTHROPIC_MODEL` | `claude-sonnet-4-6` | model for cloud agents (override if the alias errors) |
 | `DEEPTALK_INTENT` | `heuristic` | `heuristic` (free) or `llm` (smarter; uses the provider) |
 | `DEEPTALK_DIARIZE` | `off` | `off` or `vibevoice` (post-session diarization, GPU) |
-| `DEEPTALK_RECORDING` | — | path to a recorded WAV to diarize on `/finalize` |
+| `DEEPTALK_RECORDING` | — | WAV path: records the live audio here AND diarizes it on `/finalize` |
 | `DEEPTALK_MAX_AGENT_CALLS` | `50` | per-session agent-call cap (`-1` = unlimited) |
 | `DEEPTALK_AGENT_TIMEOUT` | `30` | per-agent timeout in seconds |
 | `DEEPTALK_SESSION_ID` | `demo` | session id |
@@ -161,6 +165,4 @@ cd ui && npm test    # UI (Vitest, 29 tests)
 
 - **nemotron** is wired but not yet validated on real hardware — the first GPU run may
   need NeMo-API / chunk-size tuning (see note above).
-- **Auto-recording the live mic** for diarization isn't wired yet — diarization needs
-  `DEEPTALK_RECORDING` pointed at an externally recorded WAV for now.
 - The **mockup/diagram agent** (Phase 8) is optional and not built.

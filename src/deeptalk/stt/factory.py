@@ -12,12 +12,19 @@ def build_audio_source(config: Config) -> AudioSource:
 
         if not config.audio_file:
             raise ValueError("DEEPTALK_AUDIO_FILE is required when DEEPTALK_AUDIO=file")
-        return FileAudioSource(config.audio_file)
-    if config.audio == "mic":
+        source: AudioSource = FileAudioSource(config.audio_file)
+    elif config.audio == "mic":
         from deeptalk.audio.mic_source import SounddeviceSource
 
-        return SounddeviceSource()
-    raise ValueError(f"unknown audio source: {config.audio}")
+        source = SounddeviceSource()
+    else:
+        raise ValueError(f"unknown audio source: {config.audio}")
+
+    if config.recording_path:
+        from deeptalk.audio.recording import RecordingAudioSource
+
+        return RecordingAudioSource(source, config.recording_path)
+    return source
 
 
 def build_stt(config: Config) -> SttLive:
