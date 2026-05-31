@@ -6,10 +6,10 @@ auto-detects intent, and fires AI agents that surface **web-search answers**,
 then builds a **session wiki** (topics, decisions, action items). Optional speaker
 diarization labels who said what.
 
-Implemented: Phases 1–7 (transcript spine → live STT → model router + search agent →
+Implemented: all 8 phases — transcript spine → live STT → model router + search agent →
 intent detector + orchestrator → pros/cons + planning agents → wiki + diarization →
-GPU lease + cost/timeout hardening). The mockup/diagram agent (Phase 8) is optional
-and not yet built. See `docs/superpowers/specs` and `docs/superpowers/plans`.
+GPU lease + cost/timeout hardening → mockup/diagram agent (Mermaid). See
+`docs/superpowers/specs` and `docs/superpowers/plans`.
 
 ## Architecture (single box)
 
@@ -157,12 +157,11 @@ VITE_WS_BASE=ws://127.0.0.1:8000 npm run dev   # Vite dev server on :5173
 ## Tests
 
 ```bash
-uv run pytest -q     # Python backend (130 tests)
-cd ui && npm test    # UI (Vitest, 29 tests)
+uv run pytest -q     # Python backend (140 tests)
+cd ui && npm test    # UI (Vitest, 30 tests)
 ```
 
 ## Known gaps
 
 - **nemotron** is wired but not yet validated on real hardware — the first GPU run may
   need NeMo-API / chunk-size tuning (see note above).
-- The **mockup/diagram agent** (Phase 8) is optional and not built.
