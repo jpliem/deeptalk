@@ -278,3 +278,20 @@ body {
   font-size: 0.9rem;
   line-height: 1.5;
 }
+
+.mockup-diagram {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin: 0.4rem 0 0;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+.mockup-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
