@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ArtifactCard } from '../ArtifactCard'
 import type { Artifact } from '../types'
+
+vi.mock('mermaid', () => ({ default: { initialize: vi.fn(), run: vi.fn() } }))
 
 function art(over: Partial<Artifact> = {}): Artifact {
   return {
@@ -67,5 +69,19 @@ describe('ArtifactCard', () => {
     )
     expect(screen.getByText('one')).toBeInTheDocument()
     expect(screen.getByText('two')).toBeInTheDocument()
+  })
+
+  it('renders a mockup artifact: caption + mermaid source', () => {
+    render(
+      <ArtifactCard
+        artifact={art({
+          agent: 'mockup',
+          title: 'dashboard',
+          payload: { diagram: 'graph TD; A-->B', caption: 'dashboard flow' },
+        })}
+      />,
+    )
+    expect(screen.getByText('dashboard flow')).toBeInTheDocument()
+    expect(screen.getByText(/graph TD; A-->B/)).toBeInTheDocument()
   })
 })

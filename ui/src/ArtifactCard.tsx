@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+import mermaid from 'mermaid'
 import type { Artifact } from './types'
 
 function SearchBody({ a }: { a: Artifact }) {
@@ -59,6 +61,30 @@ function PlanningBody({ a }: { a: Artifact }) {
   )
 }
 
+function MockupBody({ a }: { a: Artifact }) {
+  const ref = useRef<HTMLPreElement>(null)
+  const diagram = a.payload.diagram ?? ''
+
+  useEffect(() => {
+    if (!ref.current || !diagram) return
+    try {
+      mermaid.initialize({ startOnLoad: false, theme: 'dark' })
+      mermaid.run({ nodes: [ref.current] })
+    } catch {
+      // leave the raw mermaid source visible as a fallback
+    }
+  }, [diagram])
+
+  return (
+    <>
+      {a.payload.caption && <p className="card-answer">{a.payload.caption}</p>}
+      <pre ref={ref} className="mermaid mockup-diagram">
+        {diagram}
+      </pre>
+    </>
+  )
+}
+
 export function ArtifactCard({ artifact }: { artifact: Artifact }) {
   const isError = artifact.status === 'error'
   return (
@@ -73,6 +99,8 @@ export function ArtifactCard({ artifact }: { artifact: Artifact }) {
         <ProsConsBody a={artifact} />
       ) : artifact.agent === 'planning' ? (
         <PlanningBody a={artifact} />
+      ) : artifact.agent === 'mockup' ? (
+        <MockupBody a={artifact} />
       ) : (
         <SearchBody a={artifact} />
       )}

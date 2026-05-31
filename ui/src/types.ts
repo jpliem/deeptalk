@@ -21,6 +21,8 @@ export interface ArtifactPayload {
   cons?: string[]
   recommendation?: string
   steps?: string[]
+  diagram?: string
+  caption?: string
 }
 
 export interface Artifact {
