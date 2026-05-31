@@ -47,6 +47,7 @@ def main() -> None:
         fire = make_fire(
             router, artifact_store, artifact_bus, config.session_id, time.time,
             tracker=cost_tracker, timeout=config.agent_timeout,
+            enable_mockup=config.enable_mockup,
         )
         orchestrator = Orchestrator(detector, fire)
 

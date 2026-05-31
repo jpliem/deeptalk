@@ -26,6 +26,7 @@ class Config:
     recording_path: str | None = None
     max_agent_calls: int = 50  # per-session cap; -1 = unlimited
     agent_timeout: float = 30.0
+    enable_mockup: bool = True
     host: str = "127.0.0.1"
     port: int = 8000
 
@@ -46,6 +47,7 @@ class Config:
             recording_path=e.get("DEEPTALK_RECORDING"),
             max_agent_calls=int(e.get("DEEPTALK_MAX_AGENT_CALLS", "50")),
             agent_timeout=float(e.get("DEEPTALK_AGENT_TIMEOUT", "30")),
+            enable_mockup=e.get("DEEPTALK_ENABLE_MOCKUP", "true").lower() != "false",
             host=e.get("DEEPTALK_HOST", "127.0.0.1"),
             port=int(e.get("DEEPTALK_PORT", "8000")),
         )

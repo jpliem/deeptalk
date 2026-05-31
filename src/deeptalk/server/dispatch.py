@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Awaitable, Callable
 
+from deeptalk.agents.mockup import run_mockup
 from deeptalk.agents.planning import run_planning
 from deeptalk.agents.proscons import run_proscons
 from deeptalk.agents.search import run_search
@@ -17,6 +18,7 @@ _AGENTS = {
     "search": run_search,
     "debate": run_proscons,
     "planning": run_planning,
+    "mockup": run_mockup,
 }
 
 
@@ -28,11 +30,14 @@ def make_fire(
     now: Callable[[], float],
     tracker: CostTracker | None = None,
     timeout: float = 30.0,
+    enable_mockup: bool = True,
 ) -> Callable[[Intent], Awaitable[None]]:
     """Build the orchestrator's `fire` callback that routes a kind to its agent,
     enforcing the per-session cost cap and per-agent timeout."""
 
     async def fire(intent: Intent) -> None:
+        if intent.kind == "mockup" and not enable_mockup:
+            return
         runner = _AGENTS.get(intent.kind)
         if runner is None:
             return

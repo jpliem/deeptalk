@@ -10,7 +10,7 @@ def _router():
     p = FakeLlmProvider()
     return ModelRouter(
         providers={"fake": p},
-        routes={"search": ["fake"], "proscons": ["fake"], "planning": ["fake"]},
+        routes={"search": ["fake"], "proscons": ["fake"], "planning": ["fake"], "mockup": ["fake"]},
         default=["fake"],
     )
 
@@ -68,3 +68,21 @@ async def test_budget_cap_emits_system_artifact(tmp_path):
     budget = [a for a in arts if a.agent == "system"][0]
     assert budget.status == "error"
     assert "budget" in budget.error.lower()
+
+
+async def test_dispatch_mockup(tmp_path):
+    store, bus, router = _ctx(tmp_path)
+    fire = make_fire(router, store, bus, "s1", now=lambda: 1.0)
+    from deeptalk.intent.models import Intent
+
+    await fire(Intent(kind="mockup", query="dashboard", topic="t"))
+    assert store.all_artifacts("s1")[0].agent == "mockup"
+
+
+async def test_dispatch_mockup_skipped_when_disabled(tmp_path):
+    store, bus, router = _ctx(tmp_path)
+    fire = make_fire(router, store, bus, "s1", now=lambda: 1.0, enable_mockup=False)
+    from deeptalk.intent.models import Intent
+
+    await fire(Intent(kind="mockup", query="dashboard", topic="t"))
+    assert store.all_artifacts("s1") == []
