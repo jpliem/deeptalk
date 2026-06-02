@@ -19,15 +19,16 @@ body {
 }
 
 .app {
-  max-width: 56rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding: 2rem 1.5rem 6rem;
 }
 
 .app-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   border-bottom: 1px solid var(--line);
   padding-bottom: 1rem;
   margin-bottom: 1.5rem;
@@ -294,4 +295,41 @@ body {
 .mockup-diagram svg {
   max-width: 100%;
   height: auto;
+}
+
+.brand { display: flex; align-items: center; gap: 0.6rem; }
+
+.dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--muted); }
+.dot[data-live="true"] {
+  background: oklch(72% 0.18 145);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 oklch(72% 0.18 145 / 0.5); }
+  70% { box-shadow: 0 0 0 0.5rem oklch(72% 0.18 145 / 0); }
+  100% { box-shadow: 0 0 0 0 oklch(72% 0.18 145 / 0); }
+}
+
+.header-right { display: flex; align-items: center; gap: 1rem; }
+
+.audiobar { display: flex; align-items: center; gap: 0.5rem; }
+.audiobar-btn {
+  background: var(--accent); color: var(--bg);
+  border: none; border-radius: 0.5rem;
+  padding: 0.45rem 0.9rem; font: inherit; font-weight: 600; cursor: pointer;
+}
+.audiobar-btn:disabled { opacity: 0.55; cursor: default; }
+.audiobar-name {
+  color: var(--muted); font-family: var(--mono); font-size: 0.8rem;
+  max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.pane-head { display: flex; align-items: baseline; justify-content: space-between; }
+.count {
+  font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+  background: var(--surface); border-radius: 1rem; padding: 0.05rem 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot[data-live="true"] { animation: none; }
 }

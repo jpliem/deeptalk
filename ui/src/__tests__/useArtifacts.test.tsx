@@ -48,4 +48,13 @@ describe('useArtifacts', () => {
     await waitFor(() => expect(result.current).toHaveLength(2))
     expect(result.current.map((a) => a.id)).toEqual(['a1', 'a2'])
   })
+
+  it('replaces an artifact when a newer one with the same id arrives', async () => {
+    const { result } = renderHook(() => useArtifacts('demo', 'ws://x'))
+    const sock = FakeWebSocket.instances[0]
+    sendArtifact(sock, { id: 'a1', status: 'pending', title: 'q' })
+    sendArtifact(sock, { id: 'a1', status: 'done', title: 'q', payload: { answer: 'A' } })
+    await waitFor(() => expect(result.current).toHaveLength(1))
+    expect(result.current[0].status).toBe('done')
+  })
 })
