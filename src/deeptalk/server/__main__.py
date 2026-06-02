@@ -77,6 +77,7 @@ def main() -> None:
         diarizer=diarizer,
         recording_path=config.recording_path,
         gpu_lease=gpu_lease,
+        config=config,
     )
     uvicorn.run(app, host=config.host, port=config.port)
 

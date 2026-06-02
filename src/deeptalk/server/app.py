@@ -1,19 +1,25 @@
 from __future__ import annotations
 
+import shutil
+import tempfile
 import time as _time
 from collections.abc import Awaitable, Callable
 from pathlib import Path as _Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from deeptalk.artifacts.store import ArtifactStore
+from deeptalk.audio.decode import decode_to_wav
+from deeptalk.audio.file_source import FileAudioSource
 from deeptalk.bus import EventBus
+from deeptalk.config import Config
 from deeptalk.diarize.base import Diarizer
 from deeptalk.gpu.lease import GpuLease
 from deeptalk.llm.router import ModelRouter
+from deeptalk.stt.factory import build_stt
 from deeptalk.transcript.events import TranscriptEvent
 from deeptalk.transcript.store import TranscriptStore
 from deeptalk.wiki.store import WikiStore
@@ -78,6 +84,7 @@ def create_app(
     diarizer: "Diarizer | None" = None,
     recording_path: str | None = None,
     gpu_lease: "GpuLease | None" = None,
+    config: Config | None = None,
 ) -> FastAPI:
     app = FastAPI(title="DeepTalk", lifespan=lifespan)
 
@@ -159,6 +166,23 @@ def create_app(
             if wiki is None:
                 raise HTTPException(status_code=404, detail="no wiki for session")
             return wiki.to_dict()
+
+    @app.post("/upload")
+    async def upload(file: UploadFile = File(...), session_id: str = "default") -> dict[str, int]:
+        if config is None:
+            raise HTTPException(status_code=503, detail="audio config not available")
+        suffix = _Path(file.filename or "audio").suffix or ".bin"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            shutil.copyfileobj(file.file, tmp)
+            src = tmp.name
+        wav = decode_to_wav(src)
+        stt = build_stt(config, audio_source=FileAudioSource(wav), realtime=False)
+        count = 0
+        async for ev in stt.stream():
+            store.append(ev)
+            await bus.publish(ev)
+            count += 1
+        return {"events": count}
 
     # Mount the built UI LAST so /health and /ws/transcript take precedence.
     if ui_dir and _Path(ui_dir).is_dir():

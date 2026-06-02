@@ -6,6 +6,7 @@ dependencies = [
     "anthropic>=0.105.2",
     "fastapi",
     "numpy>=2.4.6",
+    "python-multipart>=0.0.30",
     "sounddevice>=0.5.5",
     "uvicorn[standard]",
     "websockets",

@@ -27,19 +27,23 @@ def build_audio_source(config: Config) -> AudioSource:
     return source
 
 
-def build_stt(config: Config) -> SttLive:
+def build_stt(
+    config: Config,
+    audio_source: AudioSource | None = None,
+    realtime: bool = True,
+) -> SttLive:
     if config.stt == "fake":
         return FakeSttLive(
             session_id=config.session_id,
             fixture_path=config.fixture_path,
-            realtime=True,
+            realtime=realtime,
         )
     if config.stt == "nemotron":
         # Imported here so the nemo/torch import only happens on the GPU box.
         from deeptalk.stt.nemo_recognizer import NemoCacheAwareRecognizer
         from deeptalk.stt.nemotron import NemotronSttLive
 
-        audio = build_audio_source(config)
+        audio = audio_source if audio_source is not None else build_audio_source(config)
         return NemotronSttLive(
             session_id=config.session_id,
             audio_source=audio,
