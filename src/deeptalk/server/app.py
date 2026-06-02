@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import os
 import shutil
 import tempfile
 import time as _time
@@ -175,14 +177,25 @@ def create_app(
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
             shutil.copyfileobj(file.file, tmp)
             src = tmp.name
-        wav = decode_to_wav(src)
-        stt = build_stt(config, audio_source=FileAudioSource(wav), realtime=False)
-        count = 0
-        async for ev in stt.stream():
-            store.append(ev)
-            await bus.publish(ev)
-            count += 1
-        return {"events": count}
+        wav = ""
+        try:
+            wav = await asyncio.to_thread(decode_to_wav, src)
+            stt = await asyncio.to_thread(
+                build_stt, config, FileAudioSource(wav), False
+            )
+            count = 0
+            async for ev in stt.stream():
+                store.append(ev)
+                await bus.publish(ev)
+                count += 1
+            return {"events": count}
+        finally:
+            for path in {src, wav}:
+                if path:
+                    try:
+                        os.unlink(path)
+                    except OSError:
+                        pass
 
     # Mount the built UI LAST so /health and /ws/transcript take precedence.
     if ui_dir and _Path(ui_dir).is_dir():
