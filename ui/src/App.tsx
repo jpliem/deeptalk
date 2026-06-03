@@ -9,6 +9,7 @@ import { WikiPanel } from './WikiPanel'
 import { postAsk } from './ask'
 import { postUpload } from './upload'
 import { postFinalize, getWiki } from './wiki'
+import { postClear } from './clear'
 
 const SESSION_ID =
   new URLSearchParams(window.location.search).get('session') ?? 'demo'
@@ -31,6 +32,17 @@ export default function App() {
     await postUpload(SESSION_ID, file)
   }
 
+  async function handleClear() {
+    if (
+      confirm(
+        'Are you sure you want to clean this session? This will delete all transcripts, insights, and the wiki.'
+      )
+    ) {
+      await postClear(SESSION_ID)
+      window.location.reload()
+    }
+  }
+
   async function handleFinalize() {
     await postFinalize(SESSION_ID)
     return getWiki(SESSION_ID)
@@ -46,6 +58,9 @@ export default function App() {
           <h1>DeepTalk</h1>
         </div>
         <div className="header-right">
+          <button className="btn-clear" onClick={handleClear}>
+            Clean Session
+          </button>
           <AudioBar onUpload={handleUpload} />
           <span className="session">session · {SESSION_ID}</span>
         </div>

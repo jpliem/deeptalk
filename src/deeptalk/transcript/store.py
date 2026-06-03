@@ -62,3 +62,7 @@ class TranscriptStore:
             )
             for r in rows
         ]
+
+    def clear(self, session_id: str) -> None:
+        self._conn.execute("DELETE FROM transcript_event WHERE session_id = ?", (session_id,))
+        self._conn.commit()

@@ -10,7 +10,8 @@ def test_defaults_when_env_empty():
     assert c.audio_file is None
     assert c.host == "127.0.0.1"
     assert c.port == 8000
-    assert c.fixture_path.endswith("fixtures/sample_meeting.jsonl")
+    assert c.fixture_path.replace("\\", "/").endswith("fixtures/sample_meeting.jsonl")
+
 
 
 def test_reads_overrides_from_env():

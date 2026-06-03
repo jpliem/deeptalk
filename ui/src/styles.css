@@ -319,6 +319,19 @@ body {
   padding: 0.45rem 0.9rem; font: inherit; font-weight: 600; cursor: pointer;
 }
 .audiobar-btn:disabled { opacity: 0.55; cursor: default; }
+.btn-clear {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.9rem; font: inherit; font-weight: 600; cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-clear:hover {
+  background: oklch(30% 0.15 25);
+  color: oklch(85% 0.05 25);
+  border-color: oklch(45% 0.15 25);
+}
 .audiobar-name {
   color: var(--muted); font-family: var(--mono); font-size: 0.8rem;
   max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

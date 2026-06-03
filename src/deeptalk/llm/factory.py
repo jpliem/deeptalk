@@ -15,6 +15,15 @@ def build_router(config: Config) -> ModelRouter:
 
         providers["anthropic"] = AnthropicProvider(model=config.anthropic_model)
         chain = ["anthropic"]
+    elif config.search_provider == "openrouter":
+        from deeptalk.llm.openrouter_provider import OpenRouterProvider
+
+        providers["openrouter"] = OpenRouterProvider(
+            model=config.openrouter_model,
+            api_key=config.openrouter_api_key,
+        )
+        chain = ["openrouter"]
+
 
     return ModelRouter(
         providers=providers,

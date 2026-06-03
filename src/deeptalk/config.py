@@ -19,8 +19,10 @@ class Config:
     db_path: str = "deeptalk-demo.db"
     fixture_path: str = _DEFAULT_FIXTURE
     audio_file: str | None = None
-    search_provider: str = "fake"  # "fake" | "anthropic"
+    search_provider: str = "fake"  # "fake" | "anthropic" | "openrouter"
     anthropic_model: str = "claude-sonnet-4-6"
+    openrouter_model: str = "google/gemini-2.5-flash"
+    openrouter_api_key: str | None = None
     intent_detector: str = "heuristic"  # "heuristic" | "llm"
     diarize: str = "off"  # "off" | "vibevoice"
     recording_path: str | None = None
@@ -32,7 +34,21 @@ class Config:
 
     @classmethod
     def from_env(cls, env: dict[str, str] | None = None) -> "Config":
-        e = os.environ if env is None else env
+        if env is None:
+            dotenv_path = Path(__file__).resolve().parents[2] / ".env"
+            if dotenv_path.is_file():
+                with open(dotenv_path, encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            k, v = line.split("=", 1)
+                            k, v = k.strip(), v.strip().strip('"').strip("'")
+                            if k:
+                                os.environ.setdefault(k, v)
+            e = os.environ
+        else:
+            e = env
+
         return cls(
             stt=e.get("DEEPTALK_STT", "fake"),
             audio=e.get("DEEPTALK_AUDIO", "file"),
@@ -42,6 +58,8 @@ class Config:
             audio_file=e.get("DEEPTALK_AUDIO_FILE"),
             search_provider=e.get("DEEPTALK_SEARCH_PROVIDER", "fake"),
             anthropic_model=e.get("DEEPTALK_ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+            openrouter_model=e.get("DEEPTALK_OPENROUTER_MODEL", "google/gemini-2.5-flash"),
+            openrouter_api_key=e.get("OPENROUTER_API_KEY"),
             intent_detector=e.get("DEEPTALK_INTENT", "heuristic"),
             diarize=e.get("DEEPTALK_DIARIZE", "off"),
             recording_path=e.get("DEEPTALK_RECORDING"),
@@ -51,3 +69,4 @@ class Config:
             host=e.get("DEEPTALK_HOST", "127.0.0.1"),
             port=int(e.get("DEEPTALK_PORT", "8000")),
         )
+

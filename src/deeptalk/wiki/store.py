@@ -58,5 +58,9 @@ class WikiStore:
             created_at=row["created_at"],
         )
 
+    def clear(self, session_id: str) -> None:
+        self._conn.execute("DELETE FROM wiki WHERE session_id = ?", (session_id,))
+        self._conn.commit()
+
     def close(self) -> None:
         self._conn.close()
