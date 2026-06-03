@@ -196,7 +196,11 @@ def create_app(
 
             if config.stt == "fake" and not is_pytest:
                 from deeptalk.stt.whisper import WhisperSttLive
-                stt = WhisperSttLive(session_id=session_id, audio_file_path=wav)
+                stt = WhisperSttLive(
+                    session_id=session_id,
+                    audio_file_path=wav,
+                    model_size=config.whisper_model,
+                )
             else:
                 stt = await asyncio.to_thread(
                     build_stt, config, FileAudioSource(wav), False

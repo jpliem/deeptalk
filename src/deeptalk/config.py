@@ -14,6 +14,7 @@ class Config:
     """Runtime configuration, sourced from environment variables."""
 
     stt: str = "fake"  # "fake" | "nemotron"
+    whisper_model: str = "base"  # faster-whisper size: tiny|base|small|medium|large-v3
     audio: str = "file"  # "file" | "mic"
     session_id: str = "demo"
     db_path: str = "deeptalk-demo.db"
@@ -51,6 +52,7 @@ class Config:
 
         return cls(
             stt=e.get("DEEPTALK_STT", "fake"),
+            whisper_model=e.get("DEEPTALK_WHISPER_MODEL", "base"),
             audio=e.get("DEEPTALK_AUDIO", "file"),
             session_id=e.get("DEEPTALK_SESSION_ID", "demo"),
             db_path=e.get("DEEPTALK_DB", "deeptalk-demo.db"),
