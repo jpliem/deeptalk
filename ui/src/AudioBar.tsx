@@ -1,6 +1,35 @@
 import { useRef, useState, useEffect } from 'react'
 import { wsUrl } from './ws'
 
+const WORKLET_CODE = `
+class AudioProcessor extends AudioWorkletProcessor {
+  process(inputs, outputs, parameters) {
+    const input = inputs[0];
+    if (input && input[0]) {
+      const channelData = input[0];
+      const pcmData = new Int16Array(channelData.length);
+      for (let i = 0; i < channelData.length; i++) {
+        const s = Math.max(-1, Math.min(1, channelData[i]));
+        pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      }
+      this.port.postMessage(pcmData.buffer, [pcmData.buffer]);
+    }
+    return true;
+  }
+}
+registerProcessor('audio-processor', AudioProcessor);
+`;
+
+let workletUrl = '';
+try {
+  if (typeof Blob !== 'undefined' && typeof URL !== 'undefined' && URL.createObjectURL) {
+    const workletBlob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
+    workletUrl = URL.createObjectURL(workletBlob);
+  }
+} catch (e) {
+  // Safe fallback for testing environments
+}
+
 export function AudioBar({
   onUpload,
   sessionId = 'demo',
@@ -19,7 +48,7 @@ export function AudioBar({
   const streamRef = useRef<MediaStream | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
-  const processorRef = useRef<ScriptProcessorNode | null>(null)
+  const processorRef = useRef<AudioWorkletNode | null>(null)
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null)
 
   async function handleFile(file: File) {
@@ -48,18 +77,18 @@ export function AudioBar({
       const source = audioCtx.createMediaStreamSource(stream)
       sourceRef.current = source
 
-      const processor = audioCtx.createScriptProcessor(4096, 1, 1)
+      if (!audioCtx.audioWorklet) {
+        throw new Error('AudioWorklet is not supported in this browser.')
+      }
+
+      await audioCtx.audioWorklet.addModule(workletUrl)
+      const processor = new AudioWorkletNode(audioCtx, 'audio-processor')
       processorRef.current = processor
 
-      processor.onaudioprocess = (e) => {
-        const inputData = e.inputBuffer.getChannelData(0)
-        const pcmData = new Int16Array(inputData.length)
-        for (let i = 0; i < inputData.length; i++) {
-          const s = Math.max(-1, Math.min(1, inputData[i]))
-          pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7fff
-        }
+      processor.port.onmessage = (e) => {
+        const pcmBuffer = e.data as ArrayBuffer
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(pcmData.buffer)
+          ws.send(pcmBuffer)
         }
       }
 
@@ -76,6 +105,7 @@ export function AudioBar({
     setMicActive(false)
     if (processorRef.current) {
       try {
+        processorRef.current.port.onmessage = null
         processorRef.current.disconnect()
       } catch {}
       processorRef.current = null
