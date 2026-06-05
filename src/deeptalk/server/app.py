@@ -247,7 +247,7 @@ def create_app(
             import sys
             is_pytest = "pytest" in sys.modules
 
-            if config.stt == "fake" and not is_pytest and not realtime:
+            if config.stt in ("fake", "whisper") and not is_pytest and not realtime:
                 from deeptalk.stt.whisper import WhisperSttLive
                 stt = WhisperSttLive(
                     session_id=session_id,
