@@ -35,24 +35,44 @@ class ArtifactStore:
         self._conn.commit()
 
     def append(self, art: Artifact) -> int:
-        cur = self._conn.execute(
-            "INSERT INTO artifact "
-            "(id, session_id, agent, status, title, payload, created_at, latency_ms, error) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                art.id,
-                art.session_id,
-                art.agent,
-                art.status,
-                art.title,
-                json.dumps(art.payload),
-                art.created_at,
-                art.latency_ms,
-                art.error,
-            ),
-        )
-        self._conn.commit()
-        return int(cur.lastrowid)
+        exists = self._conn.execute(
+            "SELECT seq FROM artifact WHERE session_id = ? AND id = ?",
+            (art.session_id, art.id),
+        ).fetchone()
+        if exists:
+            self._conn.execute(
+                "UPDATE artifact SET status = ?, payload = ?, latency_ms = ?, error = ? "
+                "WHERE session_id = ? AND id = ?",
+                (
+                    art.status,
+                    json.dumps(art.payload),
+                    art.latency_ms,
+                    art.error,
+                    art.session_id,
+                    art.id,
+                ),
+            )
+            self._conn.commit()
+            return int(exists["seq"])
+        else:
+            cur = self._conn.execute(
+                "INSERT INTO artifact "
+                "(id, session_id, agent, status, title, payload, created_at, latency_ms, error) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    art.id,
+                    art.session_id,
+                    art.agent,
+                    art.status,
+                    art.title,
+                    json.dumps(art.payload),
+                    art.created_at,
+                    art.latency_ms,
+                    art.error,
+                ),
+            )
+            self._conn.commit()
+            return int(cur.lastrowid)
 
     def all_artifacts(self, session_id: str) -> list[Artifact]:
         rows = self._conn.execute(

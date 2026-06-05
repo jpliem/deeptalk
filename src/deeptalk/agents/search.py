@@ -19,14 +19,16 @@ async def run_search(
     bus: EventBus,
     now: float,
     timeout: float = 30.0,
+    artifact_id: str | None = None,
 ) -> Artifact:
     """Run a web search for `query`, persist + publish the resulting Artifact."""
+    art_id = artifact_id or uuid.uuid4().hex
     try:
         async with asyncio.timeout(timeout):
             providers = router.chain_for(AGENT)
             result = await run_with_fallback(providers, lambda p: p.search_answer(query))
         artifact = Artifact(
-            id=uuid.uuid4().hex,
+            id=art_id,
             session_id=session_id,
             agent=AGENT,
             status="done",
@@ -40,7 +42,7 @@ async def run_search(
         )
     except TimeoutError:
         artifact = Artifact(
-            id=uuid.uuid4().hex,
+            id=art_id,
             session_id=session_id,
             agent=AGENT,
             status="error",
@@ -52,7 +54,7 @@ async def run_search(
     except Exception as error:  # noqa: BLE001
         cause = error.__cause__ or error
         artifact = Artifact(
-            id=uuid.uuid4().hex,
+            id=art_id,
             session_id=session_id,
             agent=AGENT,
             status="error",

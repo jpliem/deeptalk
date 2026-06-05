@@ -346,3 +346,77 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .dot[data-live="true"] { animation: none; }
 }
+
+/* Skeleton Loading Shimmer */
+.card.pending {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.skeleton-line {
+  height: 0.85rem;
+  border-radius: 0.25rem;
+  width: 100%;
+  animation: skeleton-loading 1.5s infinite linear;
+  background: linear-gradient(
+    90deg,
+    var(--line) 25%,
+    oklch(35% 0.02 260) 50%,
+    var(--line) 75%
+  );
+  background-size: 200% 100%;
+}
+
+.skeleton-line.title {
+  height: 1rem;
+  margin-bottom: 0.25rem;
+  width: 50% !important;
+}
+
+.skeleton-box {
+  border-radius: 0.5rem;
+  width: 100%;
+  animation: skeleton-loading 1.5s infinite linear;
+  background: linear-gradient(
+    90deg,
+    var(--line) 25%,
+    oklch(35% 0.02 260) 50%,
+    var(--line) 75%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Glowing animation for active live microphone button */
+.mic-btn.active {
+  background: oklch(60% 0.2 25) !important;
+  color: #fff !important;
+  animation: pulse-glowing 1.5s infinite;
+}
+
+@keyframes pulse-glowing {
+  0% {
+    box-shadow: 0 0 0 0 oklch(60% 0.2 25 / 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px oklch(60% 0.2 25 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 oklch(60% 0.2 25 / 0);
+  }
+}

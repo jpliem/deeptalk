@@ -28,6 +28,7 @@ async def run_planning(
     bus: EventBus,
     now: float,
     timeout: float = 30.0,
+    artifact_id: str | None = None,
 ) -> Artifact:
     return await run_completion_agent(
         agent=AGENT,
@@ -40,4 +41,5 @@ async def run_planning(
         prompt=_PROMPT.format(query=query),
         build_payload=_payload,
         timeout=timeout,
+        artifact_id=artifact_id,
     )

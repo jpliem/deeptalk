@@ -47,6 +47,18 @@ def build_stt(
         return NemotronSttLive(
             session_id=config.session_id,
             audio_source=audio,
-            recognizer=NemoCacheAwareRecognizer(),
+            # right_context=13 gives best WER (~1.1 s latency);
+            # right_context=0 is lowest latency but noticeably worse quality.
+            recognizer=NemoCacheAwareRecognizer(model_name=config.nemo_model, right_context=13),
+            chunk_ms=160,
+        )
+    if config.stt == "whisper":
+        from deeptalk.stt.whisper import WhisperStreamingSttLive
+
+        audio = audio_source if audio_source is not None else build_audio_source(config)
+        return WhisperStreamingSttLive(
+            session_id=config.session_id,
+            audio_source=audio,
+            model_size=config.whisper_model,
         )
     raise ValueError(f"unknown stt: {config.stt}")

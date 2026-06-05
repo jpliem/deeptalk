@@ -55,6 +55,21 @@ def make_fire(
             store.append(budget)
             await bus.publish(budget)
             return
-        await runner(intent.query, session_id, router, store, bus, now(), timeout=timeout)
+
+        art_id = uuid.uuid4().hex
+        agent_name = "proscons" if intent.kind == "debate" else intent.kind
+        pending = Artifact(
+            id=art_id,
+            session_id=session_id,
+            agent=agent_name,
+            status="pending",
+            title=intent.query,
+            payload={},
+            created_at=now(),
+        )
+        store.append(pending)
+        await bus.publish(pending)
+
+        await runner(intent.query, session_id, router, store, bus, now(), timeout=timeout, artifact_id=art_id)
 
     return fire

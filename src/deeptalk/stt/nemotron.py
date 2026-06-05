@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 
 from deeptalk.audio.base import AudioSource
@@ -29,14 +30,52 @@ class NemotronSttLive(SttLive):
 
     async def stream(self) -> AsyncIterator[TranscriptEvent]:
         elapsed = 0.0
-        async for frame in self._audio.frames():
-            text = self._recognizer.transcribe_chunk(frame)
-            if text:
+        current_phrase = ""
+        last_text_ts = None
+        start_ts = None
+        
+        # Pause threshold in seconds (e.g. 1.2 seconds of silence finishes a phrase)
+        pause_threshold = 1.2
+
+        try:
+            async for frame in self._audio.frames():
+                text = await asyncio.to_thread(self._recognizer.transcribe_chunk, frame)
+                if text:
+                    text = text.strip()
+                    if text and text != current_phrase:
+                        if not current_phrase:
+                            start_ts = elapsed
+                        current_phrase = text
+                        last_text_ts = elapsed
+                
+                # Check for silence/pause to finalize the current phrase
+                if current_phrase and last_text_ts is not None:
+                    silence_duration = elapsed - last_text_ts
+                    if silence_duration >= pause_threshold:
+                        yield TranscriptEvent(
+                            session_id=self._session_id,
+                            ts=round(start_ts or 0.0, 3),
+                            text=current_phrase,
+                            is_final=True,
+                            source="live",
+                        )
+                        # Reset the cache-aware recognizer to start a fresh new phrase
+                        if hasattr(self._recognizer, "reset"):
+                            self._recognizer.reset()
+                        current_phrase = ""
+                        last_text_ts = None
+                        start_ts = None
+
+                elapsed += self._chunk_ms / 1000.0
+        finally:
+            # Yield any remaining text when the audio source closes
+            if current_phrase:
                 yield TranscriptEvent(
                     session_id=self._session_id,
-                    ts=round(elapsed, 3),
-                    text=text,
+                    ts=round(start_ts or 0.0, 3),
+                    text=current_phrase,
                     is_final=True,
                     source="live",
                 )
-            elapsed += self._chunk_ms / 1000.0
+                if hasattr(self._recognizer, "reset"):
+                    self._recognizer.reset()

@@ -93,16 +93,62 @@ function MockupBody({ a }: { a: Artifact }) {
   )
 }
 
+function PendingBody({ agent }: { agent: string }) {
+  if (agent === 'proscons') {
+    return (
+      <div className="skeleton-body proscons">
+        <div className="pros">
+          <div className="skeleton-line title" />
+          <div className="skeleton-line" />
+          <div className="skeleton-line" />
+        </div>
+        <div className="cons">
+          <div className="skeleton-line title" />
+          <div className="skeleton-line" />
+          <div className="skeleton-line" />
+        </div>
+      </div>
+    )
+  }
+  if (agent === 'planning') {
+    return (
+      <div className="skeleton-body card-steps">
+        <div className="skeleton-line" style={{ width: '80%' }} />
+        <div className="skeleton-line" style={{ width: '70%' }} />
+        <div className="skeleton-line" style={{ width: '60%' }} />
+      </div>
+    )
+  }
+  if (agent === 'mockup') {
+    return (
+      <div className="skeleton-body">
+        <div className="skeleton-line" style={{ width: '40%' }} />
+        <div className="skeleton-box" style={{ height: '120px', marginTop: '0.5rem' }} />
+      </div>
+    )
+  }
+  return (
+    <div className="skeleton-body">
+      <div className="skeleton-line" />
+      <div className="skeleton-line" style={{ width: '85%' }} />
+      <div className="skeleton-line" style={{ width: '60%' }} />
+    </div>
+  )
+}
+
 export function ArtifactCard({ artifact }: { artifact: Artifact }) {
   const isError = artifact.status === 'error'
+  const isPending = artifact.status === 'pending'
   return (
-    <article className={`card ${isError ? 'error' : ''}`}>
+    <article className={`card ${isError ? 'error' : ''} ${isPending ? 'pending' : ''}`}>
       <header className="card-head">
         <span className="badge">{artifact.agent}</span>
         <h3 className="card-title">{artifact.title}</h3>
       </header>
       {isError ? (
         <p className="card-error">{artifact.error ?? 'Something went wrong'}</p>
+      ) : isPending ? (
+        <PendingBody agent={artifact.agent} />
       ) : artifact.agent === 'proscons' ? (
         <ProsConsBody a={artifact} />
       ) : artifact.agent === 'planning' ? (

@@ -36,6 +36,17 @@ def test_build_stt_unknown():
         build_stt(cfg)
 
 
+def test_build_stt_whisper(tmp_path):
+    from deeptalk.stt.whisper import WhisperStreamingSttLive
+    cfg = Config.from_env({
+        "DEEPTALK_STT": "whisper",
+        "DEEPTALK_AUDIO": "file",
+        "DEEPTALK_AUDIO_FILE": str(tmp_path / "a.wav"),
+    })
+    stt = build_stt(cfg)
+    assert isinstance(stt, WhisperStreamingSttLive)
+
+
 from deeptalk.audio.recording import RecordingAudioSource
 
 

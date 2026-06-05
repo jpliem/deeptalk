@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import uvicorn
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+)
 
 from deeptalk.artifacts.store import ArtifactStore
 from deeptalk.bus import EventBus
@@ -51,8 +57,22 @@ def main() -> None:
         )
         orchestrator = Orchestrator(detector, fire)
 
-        stt = build_stt(config)
-        ingest_task = asyncio.create_task(run_ingest(stt, store, bus))
+        stt = None
+        # Only start host-level STT if the audio source is NOT mic.
+        # When audio=mic, the WebSocket /ws/audio-stream endpoint handles
+        # audio ingestion per-connection; starting a second SounddeviceSource
+        # here would compete for the mic and cause confusion.
+        if config.audio != "mic":
+            try:
+                stt = build_stt(config)
+            except Exception as e:
+                logging.getLogger("deeptalk").warning(
+                    "Could not initialize host audio source at startup: %s", e
+                )
+
+        ingest_task = None
+        if stt is not None:
+            ingest_task = asyncio.create_task(run_ingest(stt, store, bus))
         orch_task = asyncio.create_task(run_orchestrator(bus, orchestrator, config.session_id))
         app.state.ingest_task = ingest_task
         app.state.orch_task = orch_task
@@ -60,9 +80,10 @@ def main() -> None:
             yield
         finally:
             for task in (ingest_task, orch_task):
-                task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
+                if task is not None:
+                    task.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await task
 
     ui_dist = Path(__file__).resolve().parents[3] / "ui" / "dist"
     app = create_app(

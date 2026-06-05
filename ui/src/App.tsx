@@ -61,7 +61,7 @@ export default function App() {
           <button className="btn-clear" onClick={handleClear}>
             Clean Session
           </button>
-          <AudioBar onUpload={handleUpload} />
+          <AudioBar onUpload={handleUpload} sessionId={SESSION_ID} />
           <span className="session">session · {SESSION_ID}</span>
         </div>
       </header>

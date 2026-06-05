@@ -119,15 +119,64 @@ def create_app(
             except WebSocketDisconnect:
                 pass
 
+    @app.websocket("/ws/audio-stream")
+    async def ws_audio_stream(ws: WebSocket) -> None:
+        session_id = ws.query_params.get("session_id", "default")
+        await ws.accept()
+        if config is None:
+            await ws.close(code=1008)
+            return
+
+        from deeptalk.audio.websocket_source import WebsocketAudioSource
+        import contextlib
+
+        raw_source = WebsocketAudioSource()
+        audio_source = raw_source
+        if config.recording_path:
+            from deeptalk.audio.recording import RecordingAudioSource
+            audio_source = RecordingAudioSource(raw_source, config.recording_path)
+
+        stt_engine = build_stt(config, audio_source=audio_source, realtime=True)
+
+        from deeptalk.ingest import run_ingest
+        ingest_task = asyncio.create_task(run_ingest(stt_engine, store, bus))
+
+        try:
+            while True:
+                data = await ws.receive_bytes()
+                raw_source.put_frame(data)
+        except WebSocketDisconnect:
+            pass
+        finally:
+            raw_source.close()
+            ingest_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await ingest_task
+
     @app.post("/ask")
     async def ask(req: AskRequest) -> dict[str, str]:
         if router is None or artifact_store is None or artifact_bus is None:
             raise HTTPException(status_code=503, detail="agents not configured")
         from deeptalk.agents.search import run_search
+        import uuid
+        from deeptalk.artifacts.models import Artifact
 
         clock = now_fn or _time.time
+        art_id = uuid.uuid4().hex
+        pending = Artifact(
+            id=art_id,
+            session_id=req.session_id,
+            agent="search",
+            status="pending",
+            title=req.query,
+            payload={},
+            created_at=clock(),
+        )
+        artifact_store.append(pending)
+        await artifact_bus.publish(pending)
+
         artifact = await run_search(
-            req.query, req.session_id, router, artifact_store, artifact_bus, clock()
+            req.query, req.session_id, router, artifact_store, artifact_bus, clock(), artifact_id=art_id
         )
         return {"id": artifact.id, "status": artifact.status}
 
@@ -179,7 +228,11 @@ def create_app(
             return {"status": "ok"}
 
     @app.post("/upload")
-    async def upload(file: UploadFile = File(...), session_id: str = "default") -> dict[str, int]:
+    async def upload(
+        file: UploadFile = File(...),
+        session_id: str = "default",
+        realtime: bool = False,
+    ) -> dict[str, int]:
         if config is None:
             raise HTTPException(status_code=503, detail="audio config not available")
         suffix = _Path(file.filename or "audio").suffix or ".bin"
@@ -194,7 +247,7 @@ def create_app(
             import sys
             is_pytest = "pytest" in sys.modules
 
-            if config.stt == "fake" and not is_pytest:
+            if config.stt == "fake" and not is_pytest and not realtime:
                 from deeptalk.stt.whisper import WhisperSttLive
                 stt = WhisperSttLive(
                     session_id=session_id,
@@ -203,7 +256,7 @@ def create_app(
                 )
             else:
                 stt = await asyncio.to_thread(
-                    build_stt, config, FileAudioSource(wav), False
+                    build_stt, config, FileAudioSource(wav, realtime=realtime), realtime
                 )
 
             count = 0

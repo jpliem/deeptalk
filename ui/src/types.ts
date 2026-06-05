@@ -29,7 +29,7 @@ export interface Artifact {
   id: string
   session_id: string
   agent: string
-  status: 'done' | 'error'
+  status: 'done' | 'error' | 'pending'
   title: string
   payload: ArtifactPayload
   created_at: number
