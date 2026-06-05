@@ -69,7 +69,7 @@ class WhisperSttLive(SttLive):
         model = _load_whisper_model(self._model_size)
         segments, _info = model.transcribe(
             self._audio_file_path,
-            vad_filter=True,
+            vad_filter=False,
             beam_size=5,
         )
 

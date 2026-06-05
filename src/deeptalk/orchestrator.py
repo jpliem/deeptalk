@@ -17,14 +17,17 @@ class Orchestrator:
         detector: IntentDetector,
         fire: Callable[[Intent], Awaitable[None]],
         max_concurrent: int = 3,
+        max_detect_concurrent: int = 5,
     ) -> None:
         self._detector = detector
         self._fire = fire
         self._seen: set[str] = set()
         self._sem = asyncio.Semaphore(max_concurrent)
+        self._detect_sem = asyncio.Semaphore(max_detect_concurrent)
 
     async def handle(self, text: str) -> Intent | None:
-        intent = await self._detector.detect(text)
+        async with self._detect_sem:
+            intent = await self._detector.detect(text)
         if intent is None or intent.topic in self._seen:
             return None
         self._seen.add(intent.topic)
