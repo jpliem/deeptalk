@@ -49,4 +49,14 @@ def build_stt(
             audio_source=audio,
             recognizer=NemoCacheAwareRecognizer(),
         )
+    if config.stt == "qwen":
+        from deeptalk.stt.qwen import QwenAsrHttpClient, QwenAsrSttLive
+
+        audio = audio_source if audio_source is not None else build_audio_source(config)
+        return QwenAsrSttLive(
+            session_id=config.session_id,
+            audio_source=audio,
+            client=QwenAsrHttpClient(config.qwen_asr_url, config.qwen_asr_model),
+            chunk_ms=config.qwen_asr_chunk_ms,
+        )
     raise ValueError(f"unknown stt: {config.stt}")

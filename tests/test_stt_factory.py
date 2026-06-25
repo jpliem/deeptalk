@@ -4,6 +4,7 @@ from deeptalk.config import Config
 from deeptalk.audio.file_source import FileAudioSource
 from deeptalk.stt.fake import FakeSttLive
 from deeptalk.stt.factory import build_audio_source, build_stt
+from deeptalk.stt.qwen import QwenAsrSttLive
 
 
 def test_build_audio_source_file(tmp_path):
@@ -28,6 +29,16 @@ def test_build_stt_fake():
     cfg = Config.from_env({"DEEPTALK_STT": "fake"})
     stt = build_stt(cfg)
     assert isinstance(stt, FakeSttLive)
+
+
+def test_build_stt_qwen(tmp_path):
+    cfg = Config.from_env({
+        "DEEPTALK_STT": "qwen",
+        "DEEPTALK_AUDIO": "file",
+        "DEEPTALK_AUDIO_FILE": str(tmp_path / "a.wav"),
+    })
+    stt = build_stt(cfg)
+    assert isinstance(stt, QwenAsrSttLive)
 
 
 def test_build_stt_unknown():

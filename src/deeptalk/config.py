@@ -13,13 +13,16 @@ _DEFAULT_FIXTURE = str(
 class Config:
     """Runtime configuration, sourced from environment variables."""
 
-    stt: str = "fake"  # "fake" | "nemotron"
+    stt: str = "fake"  # "fake" | "nemotron" | "qwen"
     whisper_model: str = "base"  # faster-whisper size: tiny|base|small|medium|large-v3
     audio: str = "file"  # "file" | "mic"
     session_id: str = "demo"
     db_path: str = "deeptalk-demo.db"
     fixture_path: str = _DEFAULT_FIXTURE
     audio_file: str | None = None
+    qwen_asr_url: str = "http://127.0.0.1:8010/v1/audio/transcriptions"
+    qwen_asr_model: str = "Qwen/Qwen3-ASR-0.6B"
+    qwen_asr_chunk_ms: int = 2000
     search_provider: str = "fake"  # "fake" | "anthropic" | "openrouter"
     anthropic_model: str = "claude-sonnet-4-6"
     openrouter_model: str = "google/gemini-2.5-flash"
@@ -58,6 +61,12 @@ class Config:
             db_path=e.get("DEEPTALK_DB", "deeptalk-demo.db"),
             fixture_path=e.get("DEEPTALK_FIXTURE", _DEFAULT_FIXTURE),
             audio_file=e.get("DEEPTALK_AUDIO_FILE"),
+            qwen_asr_url=e.get(
+                "DEEPTALK_QWEN_ASR_URL",
+                "http://127.0.0.1:8010/v1/audio/transcriptions",
+            ),
+            qwen_asr_model=e.get("DEEPTALK_QWEN_ASR_MODEL", "Qwen/Qwen3-ASR-0.6B"),
+            qwen_asr_chunk_ms=int(e.get("DEEPTALK_QWEN_ASR_CHUNK_MS", "2000")),
             search_provider=e.get("DEEPTALK_SEARCH_PROVIDER", "fake"),
             anthropic_model=e.get("DEEPTALK_ANTHROPIC_MODEL", "claude-sonnet-4-6"),
             openrouter_model=e.get("DEEPTALK_OPENROUTER_MODEL", "google/gemini-2.5-flash"),
@@ -71,4 +80,3 @@ class Config:
             host=e.get("DEEPTALK_HOST", "127.0.0.1"),
             port=int(e.get("DEEPTALK_PORT", "8000")),
         )
-
