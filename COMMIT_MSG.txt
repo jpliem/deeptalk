@@ -1,23 +1,8 @@
-fix: major reliability audit bugfixes
+fix: route POST /ask through intent detector instead of hardcoding search
 
-Backend fixes:
-- run_ingest: wrap loop in try/except so one bad event doesn't kill pipeline
-- Qwen HTTP client: add 3x retry with exponential backoff, error handling in emit_window
-- Ingest task: add done_callback for crash logging
-- TimelineService: move cursor advancement AFTER successful save (prevents data loss)
-- TimelineService: use logging.exception instead of traceback.print_exc()
-- CostTracker: add asyncio.Lock to prevent race condition on budget counting
-- LLM intent detector: add 15s timeout so hanging provider doesn't block semaphore
-
-UI fixes:
-- New shared useWebSocket hook with auto-reconnect (exponential backoff 1-30s)
-- All 3 hooks (transcript, artifacts, timeline) now auto-reconnect + handle JSON.parse failures
-- InputBar: replace alert() with inline error banner, granular mic error messages
-- App.tsx: add app-level error banner, handleUpload try/catch, fix session param edge case
-- useSessions: add try/catch to saveSessions for QuotaExceededError
-- InputBar: add onclose handler for live audio disconnect detection
-- ArtifactCard: remove unused PendingBody function
-- styles.css: add .input-error and .app-error styles
-- Delete orphaned test files (AskBox, AudioBar, TranscriptPane)
+The /ask endpoint now detects intent and fires the appropriate agent
+(search/proscons/planning/mockup) instead of always running search.
+Stores fire callback and detector on app.state so they're accessible
+from request handlers.
 
 Co-authored-by: CommandCodeBot <noreply@commandcode.ai>

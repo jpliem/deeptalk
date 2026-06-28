@@ -161,6 +161,19 @@ def create_app(
     async def ask(req: AskRequest) -> dict[str, str]:
         if router is None or artifact_store is None or artifact_bus is None:
             raise HTTPException(status_code=503, detail="agents not configured")
+
+        # Use the intent detector + fire callback (set on app.state during lifespan)
+        # so /ask routes through the same pipeline as the orchestrator.
+        fire = getattr(app.state, "fire", None)
+        detector = getattr(app.state, "detector", None)
+
+        if fire is not None and detector is not None:
+            intent = await detector.detect(req.query)
+            if intent is not None:
+                await fire(intent)
+                return {"id": intent.topic, "status": "dispatched"}
+
+        # Fallback: direct search if intent detection unavailable
         from deeptalk.agents.search import run_search
         import uuid
         from deeptalk.artifacts.models import Artifact

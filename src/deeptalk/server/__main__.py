@@ -105,6 +105,8 @@ def main() -> None:
         app.state.ingest_task = ingest_task
         app.state.orch_task = orch_task
         app.state.timeline_task = timeline_task
+        app.state.fire = fire
+        app.state.detector = detector
         try:
             yield
         finally:
