@@ -1,8 +1,23 @@
-feat: inject transcript context into search agent
+fix: major reliability audit bugfixes
 
-Agents now receive the last 20 lines of transcript so they can answer
-questions about the meeting. The search agent prepends context before
-sending the query to the LLM. Also added **kwargs to all agent runners
-to allow extensible keyword passing from dispatch.
+Backend fixes:
+- run_ingest: wrap loop in try/except so one bad event doesn't kill pipeline
+- Qwen HTTP client: add 3x retry with exponential backoff, error handling in emit_window
+- Ingest task: add done_callback for crash logging
+- TimelineService: move cursor advancement AFTER successful save (prevents data loss)
+- TimelineService: use logging.exception instead of traceback.print_exc()
+- CostTracker: add asyncio.Lock to prevent race condition on budget counting
+- LLM intent detector: add 15s timeout so hanging provider doesn't block semaphore
+
+UI fixes:
+- New shared useWebSocket hook with auto-reconnect (exponential backoff 1-30s)
+- All 3 hooks (transcript, artifacts, timeline) now auto-reconnect + handle JSON.parse failures
+- InputBar: replace alert() with inline error banner, granular mic error messages
+- App.tsx: add app-level error banner, handleUpload try/catch, fix session param edge case
+- useSessions: add try/catch to saveSessions for QuotaExceededError
+- InputBar: add onclose handler for live audio disconnect detection
+- ArtifactCard: remove unused PendingBody function
+- styles.css: add .input-error and .app-error styles
+- Delete orphaned test files (AskBox, AudioBar, TranscriptPane)
 
 Co-authored-by: CommandCodeBot <noreply@commandcode.ai>

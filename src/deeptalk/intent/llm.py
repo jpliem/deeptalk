@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 
@@ -40,7 +41,10 @@ class LlmIntentDetector:
         prompt = _PROMPT.format(text=text)
         try:
             providers = self._router.chain_for("intent")
-            raw = await run_with_fallback(providers, lambda p: p.complete(prompt))
+            raw = await asyncio.wait_for(
+                run_with_fallback(providers, lambda p: p.complete(prompt)),
+                timeout=15.0,
+            )
         except Exception:  # noqa: BLE001 - detection is best-effort
             return None
         data = _parse(raw)

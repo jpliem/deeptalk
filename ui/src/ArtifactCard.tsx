@@ -93,41 +93,6 @@ function MockupBody({ a }: { a: Artifact }) {
   )
 }
 
-function PendingBody({ agent }: { agent: string }) {
-  if (agent === 'proscons') {
-    return (
-      <div className="skeleton-body proscons">
-        <div className="pros">
-          <div className="skeleton-line title" />
-          <div className="skeleton-line" />
-          <div className="skeleton-line" />
-        </div>
-        <div className="cons">
-          <div className="skeleton-line title" />
-          <div className="skeleton-line" />
-          <div className="skeleton-line" />
-        </div>
-      </div>
-    )
-  }
-  if (agent === 'planning') {
-    return (
-      <div className="skeleton-body card-steps">
-        <div className="skeleton-line" style={{ width: '80%' }} />
-        <div className="skeleton-line" style={{ width: '70%' }} />
-        <div className="skeleton-line" style={{ width: '60%' }} />
-      </div>
-    )
-  }
-  return (
-    <div className="skeleton-body">
-      <div className="skeleton-line" />
-      <div className="skeleton-line" style={{ width: '85%' }} />
-      <div className="skeleton-line" style={{ width: '60%' }} />
-    </div>
-  )
-}
-
 export function ArtifactCard({ artifact }: { artifact: Artifact }) {
   const isError = artifact.status === 'error'
   return (

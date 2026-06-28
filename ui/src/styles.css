@@ -438,6 +438,16 @@ body {
   background: var(--chat-bg);
 }
 
+.input-error,
+.app-error {
+  background: #fce4e4;
+  color: #c0392b;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  text-align: center;
+  cursor: pointer;
+}
+
 .input-form {
   max-width: var(--chat-max-width);
   margin: 0 auto;

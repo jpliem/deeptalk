@@ -14,8 +14,8 @@ import { postFinalize, getWiki } from './wiki'
 import { postClear } from './clear'
 import type { Wiki } from './types'
 
-const SESSION_ID =
-  new URLSearchParams(window.location.search).get('session') ?? 'demo'
+const rawSession = new URLSearchParams(window.location.search).get('session')
+const SESSION_ID = rawSession && rawSession.length > 0 ? rawSession : 'demo'
 
 export default function App() {
   const events = useTranscript(SESSION_ID)
@@ -26,6 +26,7 @@ export default function App() {
   const [userMessages, setUserMessages] = useState<string[]>([])
   const [pending, setPending] = useState(false)
   const [suggestedQuery, setSuggestedQuery] = useState<string>()
+  const [appError, setAppError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const feedRef = useRef<HTMLDivElement>(null)
 
@@ -54,7 +55,11 @@ export default function App() {
   }
 
   async function handleUpload(file: File) {
-    await postUpload(SESSION_ID, file)
+    try {
+      await postUpload(SESSION_ID, file)
+    } catch {
+      setAppError('Upload failed. Check the connection and try again.')
+    }
   }
 
   async function handleClear() {
@@ -213,12 +218,18 @@ export default function App() {
             )}
           </div>
 
+          {appError && (
+            <div className="app-error" onClick={() => setAppError(null)}>
+              {appError}
+            </div>
+          )}
           <InputBar
             sessionId={SESSION_ID}
             onAsk={handleAsk}
             onUpload={handleUpload}
             pending={pending}
             defaultQuery={suggestedQuery}
+            onError={setAppError}
           />
         </div>
       </div>

@@ -53,7 +53,7 @@ def make_fire(
         runner = _AGENTS.get(intent.kind)
         if runner is None:
             return
-        if tracker is not None and not tracker.allow(session_id):
+        if tracker is not None and not await tracker.allow(session_id):
             budget = Artifact(
                 id=uuid.uuid4().hex,
                 session_id=session_id,

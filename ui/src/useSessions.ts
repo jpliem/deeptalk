@@ -19,7 +19,11 @@ function loadSessions(): SessionInfo[] {
 }
 
 function saveSessions(sessions: SessionInfo[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
+  } catch {
+    // localStorage full or disabled — silently ignore
+  }
 }
 
 function fmtDate(ts: number): string {

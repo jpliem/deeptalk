@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import re
 import time
 from uuid import uuid4
+
+log = logging.getLogger(__name__)
 
 from deeptalk.bus import EventBus
 from deeptalk.llm.ollama_provider import OllamaProvider
@@ -76,9 +79,7 @@ class TimelineService:
             try:
                 await self._tick()
             except Exception:
-                # Logged but never crashes the loop
-                import traceback
-                traceback.print_exc()
+                log.exception("timeline tick failed, will retry in %ss", self._interval)
 
     async def _tick(self) -> None:
         # Find all session IDs in the transcript store
@@ -89,7 +90,6 @@ class TimelineService:
             new_events = [e for e in events if e.ts > last_ts]
             if not new_events:
                 continue
-            self._last_ts[session_id] = max(e.ts for e in new_events)
             new_text = "\n".join(e.text for e in new_events)
 
             # 2. Get existing entries for context
@@ -157,3 +157,6 @@ class TimelineService:
                     created_at=time.time(),
                 )
                 await self._timeline_bus.publish(event)
+
+            # Advance cursor only after everything succeeded (no data loss on failure)
+            self._last_ts[session_id] = max(e.ts for e in new_events)

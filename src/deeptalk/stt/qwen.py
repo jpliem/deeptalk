@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import io
+import logging
 import wave
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Protocol
+
+log = logging.getLogger(__name__)
 
 from deeptalk.audio.base import AudioSource
 from deeptalk.stt.base import SttLive
@@ -27,17 +31,25 @@ class QwenAsrHttpClient:
     async def transcribe_wav(self, wav: bytes) -> str:
         import httpx
 
-        files = {"file": ("chunk.wav", wav, "audio/wav")}
-        data = {"model": self.model}
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.post(self.url, data=data, files=files)
-        resp.raise_for_status()
-        payload = resp.json()
-        if isinstance(payload, dict):
-            text = payload.get("text", "")
-            if isinstance(text, str):
-                return text.strip()
-        return ""
+        last_error: Exception | None = None
+        for attempt in range(3):
+            try:
+                files = {"file": ("chunk.wav", wav, "audio/wav")}
+                data = {"model": self.model}
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    resp = await client.post(self.url, data=data, files=files)
+                resp.raise_for_status()
+                payload = resp.json()
+                if isinstance(payload, dict):
+                    text = payload.get("text", "")
+                    if isinstance(text, str):
+                        return text.strip()
+                return ""
+            except Exception as e:
+                last_error = e
+                log.warning("qwen request failed (attempt %d/3): %s", attempt + 1, e)
+                await asyncio.sleep(1.0 * (attempt + 1))
+        raise last_error  # type: ignore[misc]
 
 
 class QwenAsrSttLive(SttLive):
@@ -86,7 +98,11 @@ class QwenAsrSttLive(SttLive):
                 yield ev
 
     async def _emit_window(self, pcm: bytes, ts: float) -> AsyncIterator[TranscriptEvent]:
-        text = await self._client.transcribe_wav(_pcm_to_wav(pcm, self._sample_rate))
+        try:
+            text = await self._client.transcribe_wav(_pcm_to_wav(pcm, self._sample_rate))
+        except Exception:
+            log.exception("qwen: transcription failed for window at %.1fs, skipping", ts)
+            return
         if text:
             yield TranscriptEvent(
                 session_id=self._session_id,

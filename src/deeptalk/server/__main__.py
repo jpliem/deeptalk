@@ -81,6 +81,12 @@ def main() -> None:
         ingest_task = None
         if stt is not None:
             ingest_task = asyncio.create_task(run_ingest(stt, store, bus))
+            def _ingest_done(t: asyncio.Task) -> None:
+                if not t.cancelled() and t.exception() is not None:
+                    logging.getLogger("deeptalk").error(
+                        "ingest task crashed: %s", t.exception()
+                    )
+            ingest_task.add_done_callback(_ingest_done)
         orch_task = asyncio.create_task(run_orchestrator(bus, orchestrator, config.session_id))
 
         # Start timeline service (if interval > 0)
