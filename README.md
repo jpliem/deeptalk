@@ -225,6 +225,7 @@ Everything below works end-to-end on a developer machine (fake STT, fake agents)
 - End-to-end Nemotron validation on real GPU hardware (NeMo API tuning)
 - Export / share session transcripts
 - Real-time speaker identification (not just post-session diarization)
+- **Auto-generated meeting minutes / report** — combine timeline, wiki, and transcript into a structured Markdown report (executive summary, decisions, action items, transcript excerpts) via a `/report` endpoint
 
 ## Quickstart
 

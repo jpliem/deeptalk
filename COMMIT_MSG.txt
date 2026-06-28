@@ -1,6 +1,0 @@
-docs: position DeepTalk as a proactive meeting assistant
-
-Emphasize live intent detection vs post-meeting summaries as the
-core differentiator from transcription-only tools.
-
-Co-authored-by: CommandCodeBot <noreply@commandcode.ai>
