@@ -1,7 +1,6 @@
-fix: pass transcript context in /ask fallback path
+fix: skip intent detection on manual chat (/ask)
 
-When the intent detector returns None (e.g. "summarize" with no
-matching kind), the fallback search now includes transcript context
-so Ollama can actually answer about the meeting.
+The textbox is a manual action — just answer the question directly via
+search agent with transcript context. No intent routing.
 
 Co-authored-by: CommandCodeBot <noreply@commandcode.ai>

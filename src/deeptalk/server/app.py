@@ -162,18 +162,8 @@ def create_app(
         if router is None or artifact_store is None or artifact_bus is None:
             raise HTTPException(status_code=503, detail="agents not configured")
 
-        # Use the intent detector + fire callback (set on app.state during lifespan)
-        # so /ask routes through the same pipeline as the orchestrator.
-        fire = getattr(app.state, "fire", None)
-        detector = getattr(app.state, "detector", None)
-
-        if fire is not None and detector is not None:
-            intent = await detector.detect(req.query)
-            if intent is not None:
-                await fire(intent)
-                return {"id": intent.topic, "status": "dispatched"}
-
-        # Fallback: direct search with transcript context
+        # Direct search with transcript context — no intent routing.
+        # The user typed this manually, so just answer the question.
         from deeptalk.agents.search import run_search
         import uuid
         from deeptalk.artifacts.models import Artifact
@@ -196,9 +186,9 @@ def create_app(
         ctx = ""
         if store is not None:
             events = store.all_events(req.session_id)
-            lines = [e.text for e in events if e.is_final][-20:]
+            lines = [e.text for e in events if e.is_final]
             if lines:
-                ctx = "Recent meeting transcript:\n" + "\n".join(lines)
+                ctx = "Recent meeting transcript:\n" + "\n".join(lines[-20:])
 
         artifact = await run_search(
             req.query, req.session_id, router, artifact_store, artifact_bus, clock(),
