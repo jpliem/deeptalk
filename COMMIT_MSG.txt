@@ -1,6 +1,7 @@
-docs: add Mega-ASR optional STT backend to README
+fix: pass transcript context in /ask fallback path
 
-Mega-ASR is a robustness-enhanced variant of Qwen3-ASR for noisy
-environments. Drop-in sidecar replacement, same config.
+When the intent detector returns None (e.g. "summarize" with no
+matching kind), the fallback search now includes transcript context
+so Ollama can actually answer about the meeting.
 
 Co-authored-by: CommandCodeBot <noreply@commandcode.ai>

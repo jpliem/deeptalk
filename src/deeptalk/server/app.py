@@ -173,7 +173,7 @@ def create_app(
                 await fire(intent)
                 return {"id": intent.topic, "status": "dispatched"}
 
-        # Fallback: direct search if intent detection unavailable
+        # Fallback: direct search with transcript context
         from deeptalk.agents.search import run_search
         import uuid
         from deeptalk.artifacts.models import Artifact
@@ -192,8 +192,17 @@ def create_app(
         artifact_store.append(pending)
         await artifact_bus.publish(pending)
 
+        # Build transcript context from the store
+        ctx = ""
+        if store is not None:
+            events = store.all_events(req.session_id)
+            lines = [e.text for e in events if e.is_final][-20:]
+            if lines:
+                ctx = "Recent meeting transcript:\n" + "\n".join(lines)
+
         artifact = await run_search(
-            req.query, req.session_id, router, artifact_store, artifact_bus, clock(), artifact_id=art_id
+            req.query, req.session_id, router, artifact_store, artifact_bus, clock(),
+            artifact_id=art_id, transcript_context=ctx,
         )
         return {"id": artifact.id, "status": artifact.status}
 
