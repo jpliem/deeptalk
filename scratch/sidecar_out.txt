@@ -1,0 +1,24 @@
+C:\Users\JONATHAN PUTRA\Documents\GitHub\deeptalk\scratch\asr_sidecar.py:6: SyntaxWarning: invalid escape sequence '\S'
+  .venv\Scripts\python scratch/asr_sidecar.py
+C:\Users\JONATHAN PUTRA\Documents\GitHub\deeptalk\scratch\asr_sidecar.py:21: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [20008]
+INFO:     Waiting for application startup.
+Loading Qwen/Qwen3-ASR-0.6B on cuda:0...
+The following generation flags are not valid and may be ignored: ['temperature']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Model loaded.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8010 (Press CTRL+C to quit)
+Setting `pad_token_id` to `eos_token_id`:151645 for open-end generation.
+INFO:     127.0.0.1:54994 - "POST /v1/audio/transcriptions HTTP/1.1" 200 OK
+Setting `pad_token_id` to `eos_token_id`:151645 for open-end generation.
+INFO:     127.0.0.1:55042 - "POST /v1/audio/transcriptions HTTP/1.1" 200 OK
+Setting `pad_token_id` to `eos_token_id`:151645 for open-end generation.
+INFO:     127.0.0.1:55046 - "POST /v1/audio/transcriptions HTTP/1.1" 200 OK
+Setting `pad_token_id` to `eos_token_id`:151645 for open-end generation.
+INFO:     127.0.0.1:55055 - "POST /v1/audio/transcriptions HTTP/1.1" 200 OK

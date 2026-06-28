@@ -4,9 +4,9 @@ import type { Artifact } from './types'
 function SearchBody({ a }: { a: Artifact }) {
   return (
     <>
-      {a.payload.answer && <p className="card-answer">{a.payload.answer}</p>}
+      {a.payload.answer && <p className="artifact-answer">{a.payload.answer}</p>}
       {a.payload.citations && a.payload.citations.length > 0 && (
-        <ul className="card-sources">
+        <ul className="artifact-sources">
           {a.payload.citations.map((c, i) => (
             <li key={i}>
               <a href={c.url} target="_blank" rel="noopener noreferrer">
@@ -23,8 +23,8 @@ function SearchBody({ a }: { a: Artifact }) {
 function ProsConsBody({ a }: { a: Artifact }) {
   return (
     <>
-      <div className="proscons">
-        <div className="pros">
+      <div className="proscons-grid">
+        <div className="proscons-col pros">
           <h4>Pros</h4>
           <ul>
             {(a.payload.pros ?? []).map((p, i) => (
@@ -32,7 +32,7 @@ function ProsConsBody({ a }: { a: Artifact }) {
             ))}
           </ul>
         </div>
-        <div className="cons">
+        <div className="proscons-col cons">
           <h4>Cons</h4>
           <ul>
             {(a.payload.cons ?? []).map((c, i) => (
@@ -42,7 +42,7 @@ function ProsConsBody({ a }: { a: Artifact }) {
         </div>
       </div>
       {a.payload.recommendation && (
-        <p className="card-reco">
+        <p className="artifact-reco">
           <strong>Recommendation:</strong> {a.payload.recommendation}
         </p>
       )}
@@ -52,7 +52,7 @@ function ProsConsBody({ a }: { a: Artifact }) {
 
 function PlanningBody({ a }: { a: Artifact }) {
   return (
-    <ol className="card-steps">
+    <ol className="artifact-steps">
       {(a.payload.steps ?? []).map((s, i) => (
         <li key={i}>{s}</li>
       ))}
@@ -72,10 +72,10 @@ function MockupBody({ a }: { a: Artifact }) {
       try {
         const mermaid = (await import('mermaid')).default
         if (cancelled) return
-        mermaid.initialize({ startOnLoad: false, theme: 'dark' })
+        mermaid.initialize({ startOnLoad: false, theme: 'default' })
         await mermaid.run({ nodes: [node] })
       } catch {
-        // leave the raw mermaid source visible as a fallback
+        // leave raw mermaid source visible as fallback
       }
     })()
     return () => {
@@ -85,8 +85,8 @@ function MockupBody({ a }: { a: Artifact }) {
 
   return (
     <>
-      {a.payload.caption && <p className="card-answer">{a.payload.caption}</p>}
-      <pre ref={ref} className="mermaid mockup-diagram">
+      {a.payload.caption && <p className="artifact-answer">{a.payload.caption}</p>}
+      <pre ref={ref} className="mockup-diagram">
         {diagram}
       </pre>
     </>
@@ -96,13 +96,13 @@ function MockupBody({ a }: { a: Artifact }) {
 export function ArtifactCard({ artifact }: { artifact: Artifact }) {
   const isError = artifact.status === 'error'
   return (
-    <article className={`card ${isError ? 'error' : ''}`}>
-      <header className="card-head">
-        <span className="badge">{artifact.agent}</span>
-        <h3 className="card-title">{artifact.title}</h3>
+    <article className={`artifact-card${isError ? ' error' : ''}`}>
+      <header className="artifact-header">
+        <span className="artifact-badge">{artifact.agent}</span>
+        <h3 className="artifact-title">{artifact.title}</h3>
       </header>
       {isError ? (
-        <p className="card-error">{artifact.error ?? 'Something went wrong'}</p>
+        <p className="artifact-error">{artifact.error ?? 'Something went wrong'}</p>
       ) : artifact.agent === 'proscons' ? (
         <ProsConsBody a={artifact} />
       ) : artifact.agent === 'planning' ? (

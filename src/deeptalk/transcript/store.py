@@ -23,10 +23,7 @@ class TranscriptStore:
     """Append-only persistence for transcript events. The single source of truth."""
 
     def __init__(self, db_path: str) -> None:
-        # check_same_thread=False: the ASGI server may read this connection from a
-        # worker thread different from the one that opened it. Safe here because
-        # writes come only from the single ingest task on the event-loop thread.
-        self._conn = sqlite3.connect(db_path, check_same_thread=False)
+        self._conn = sqlite3.connect(db_path, check_same_thread=False, timeout=30)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
@@ -62,6 +59,13 @@ class TranscriptStore:
             )
             for r in rows
         ]
+
+    def list_sessions(self) -> list[str]:
+        """Return all distinct session_ids that have events."""
+        rows = self._conn.execute(
+            "SELECT DISTINCT session_id FROM transcript_event ORDER BY session_id"
+        ).fetchall()
+        return [r["session_id"] for r in rows]
 
     def clear(self, session_id: str) -> None:
         self._conn.execute("DELETE FROM transcript_event WHERE session_id = ?", (session_id,))

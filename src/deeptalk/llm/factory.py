@@ -23,7 +23,14 @@ def build_router(config: Config) -> ModelRouter:
             api_key=config.openrouter_api_key,
         )
         chain = ["openrouter"]
+    elif config.search_provider == "ollama":
+        from deeptalk.llm.ollama_provider import OllamaProvider
 
+        providers["ollama"] = OllamaProvider(
+            url=config.ollama_url,
+            model=config.ollama_model,
+        )
+        chain = ["ollama"]
 
     return ModelRouter(
         providers=providers,
