@@ -146,7 +146,7 @@ Two modes, selected by `DEEPTALK_INTENT`:
 
 | Mode | How it works | Pros | Cons |
 |------|-------------|------|------|
-| **`llm` (default)** | Sends the text to your search provider (Ollama/Anthropic/OpenRouter) with a prompt asking it to classify as `search`, `debate`, `planning`, `mockup`, or `none`. Parses the JSON response | Accurate, catches nuance | Costs tokens, adds latency |
+| **`llm`** | Sends the text to your search provider (Ollama/Anthropic/OpenRouter) with a prompt asking it to classify as `search`, `debate`, `planning`, `mockup`, or `none`. Parses the JSON response | Accurate, catches nuance | Costs tokens, adds latency |
 | **`heuristic`** | Rule-based keyword matching — checks for mockup signals (`"draw the"`, `"wireframe"`), planning signals (`"how do we build"`), debate signals (`" vs "`, `"pros and cons"`), and question leads (`"what"`, `"why"`) | Free, instant, no API call | Less accurate, misses complex intent |
 
 The `llm` mode is now the default. Since a small/mini model (e.g. `llama3.2:3b`) handles classification easily, the overhead is minimal.

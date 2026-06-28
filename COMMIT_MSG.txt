@@ -1,10 +1,3 @@
-feat: parakeet ASR backend, default LLM intent, detailed README docs
-
-- Add Parakeet ASR backend (DEEPTALK_STT=parakeet) using NeMo streaming
-  pipeline, configurable via DEEPTALK_PARAKEET_MODEL
-- Switch default intent detector from heuristic to llm (DEEPTALK_INTENT=llm)
-- README: add STT backend comparison table (Whisper/Qwen/Parakeet/Nemotron),
-  full pipeline explanation (event bus, orchestrator, agents, intent detection,
-  diarization, timeline), and distributed setup guide (Mac + GPU laptop)
+Revert default intent detector back to heuristic
 
 Co-authored-by: CommandCodeBot <noreply@commandcode.ai>

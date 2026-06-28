@@ -31,7 +31,7 @@ class Config:
     anthropic_model: str = "claude-sonnet-4-6"
     openrouter_model: str = "google/gemini-2.5-flash"
     openrouter_api_key: str | None = None
-    intent_detector: str = "llm"  # "heuristic" | "llm"
+    intent_detector: str = "heuristic"  # "heuristic" | "llm"
     diarize: str = "off"  # "off" | "vibevoice"
     recording_path: str | None = None
     max_agent_calls: int = 50  # per-session cap; -1 = unlimited
