@@ -319,7 +319,7 @@ def create_app(
         from deeptalk.ingest import run_ingest
 
         source = WebSocketAudioSource()
-        stt = await asyncio.to_thread(build_stt, config, source, True)
+        stt = await asyncio.to_thread(build_stt, config, source, True, session_id)
         ingest_task = asyncio.create_task(run_ingest(stt, store, bus))
 
         try:

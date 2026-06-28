@@ -31,10 +31,12 @@ def build_stt(
     config: Config,
     audio_source: AudioSource | None = None,
     realtime: bool = True,
+    session_id: str | None = None,
 ) -> SttLive:
+    sid = session_id if session_id is not None else config.session_id
     if config.stt == "fake":
         return FakeSttLive(
-            session_id=config.session_id,
+            session_id=sid,
             fixture_path=config.fixture_path,
             realtime=realtime,
         )
@@ -45,7 +47,7 @@ def build_stt(
 
         audio = audio_source if audio_source is not None else build_audio_source(config)
         return NemotronSttLive(
-            session_id=config.session_id,
+            session_id=sid,
             audio_source=audio,
             # right_context=13 gives best WER (~1.1 s latency);
             # right_context=0 is lowest latency but noticeably worse quality.
@@ -58,7 +60,7 @@ def build_stt(
 
         audio = audio_source if audio_source is not None else build_audio_source(config)
         return NemotronSttLive(
-            session_id=config.session_id,
+            session_id=sid,
             audio_source=audio,
             recognizer=NemoCacheAwareRecognizer(
                 model_name=config.parakeet_model, right_context=13
@@ -70,7 +72,7 @@ def build_stt(
 
         audio = audio_source if audio_source is not None else build_audio_source(config)
         return WhisperStreamingSttLive(
-            session_id=config.session_id,
+            session_id=sid,
             audio_source=audio,
             model_size=config.whisper_model,
         )
@@ -79,7 +81,7 @@ def build_stt(
 
         audio = audio_source if audio_source is not None else build_audio_source(config)
         return QwenAsrSttLive(
-            session_id=config.session_id,
+            session_id=sid,
             audio_source=audio,
             client=QwenAsrHttpClient(config.qwen_asr_url, config.qwen_asr_model),
             chunk_ms=config.qwen_asr_chunk_ms,

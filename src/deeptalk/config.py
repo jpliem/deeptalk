@@ -14,6 +14,7 @@ class Config:
     """Runtime configuration, sourced from environment variables."""
 
     stt: str = "fake"  # "fake" | "nemotron" | "parakeet" | "whisper" | "qwen"
+    nemo_model: str = "nvidia/nemotron-speech-streaming-en-0.6b"
     parakeet_model: str = "nvidia/parakeet-tdt-0.6b"  # NeMo Parakeet ASR model
     whisper_model: str = "base"  # faster-whisper size: tiny|base|small|medium|large-v3
     audio: str = "file"  # "file" | "mic"
@@ -59,6 +60,7 @@ class Config:
 
         return cls(
             stt=e.get("DEEPTALK_STT", "fake"),
+            nemo_model=e.get("DEEPTALK_NEMO_MODEL", "nvidia/nemotron-speech-streaming-en-0.6b"),
             parakeet_model=e.get("DEEPTALK_PARAKEET_MODEL", "nvidia/parakeet-tdt-0.6b"),
             whisper_model=e.get("DEEPTALK_WHISPER_MODEL", "base"),
             audio=e.get("DEEPTALK_AUDIO", "file"),

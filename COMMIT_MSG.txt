@@ -1,3 +1,11 @@
-Revert default intent detector back to heuristic
+fix: pass WebSocket session_id to live audio STT
+
+The /ws/live-audio handler was using config.session_id for transcript
+events instead of the WebSocket's session_id, causing transcripts from
+live mic to never reach the browser UI. Fix by threading the WebSocket
+session_id through build_stt().
+
+Also restored nemo_model config field that was dropped during earlier
+merge.
 
 Co-authored-by: CommandCodeBot <noreply@commandcode.ai>
