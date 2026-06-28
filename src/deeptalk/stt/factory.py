@@ -52,6 +52,19 @@ def build_stt(
             recognizer=NemoCacheAwareRecognizer(model_name=config.nemo_model, right_context=13),
             chunk_ms=160,
         )
+    if config.stt == "parakeet":
+        from deeptalk.stt.nemo_recognizer import NemoCacheAwareRecognizer
+        from deeptalk.stt.nemotron import NemotronSttLive
+
+        audio = audio_source if audio_source is not None else build_audio_source(config)
+        return NemotronSttLive(
+            session_id=config.session_id,
+            audio_source=audio,
+            recognizer=NemoCacheAwareRecognizer(
+                model_name=config.parakeet_model, right_context=13
+            ),
+            chunk_ms=160,
+        )
     if config.stt == "whisper":
         from deeptalk.stt.whisper import WhisperStreamingSttLive
 

@@ -13,7 +13,8 @@ _DEFAULT_FIXTURE = str(
 class Config:
     """Runtime configuration, sourced from environment variables."""
 
-    stt: str = "fake"  # "fake" | "nemotron" | "qwen"
+    stt: str = "fake"  # "fake" | "nemotron" | "parakeet" | "whisper" | "qwen"
+    parakeet_model: str = "nvidia/parakeet-tdt-0.6b"  # NeMo Parakeet ASR model
     whisper_model: str = "base"  # faster-whisper size: tiny|base|small|medium|large-v3
     audio: str = "file"  # "file" | "mic"
     session_id: str = "demo"
@@ -30,7 +31,7 @@ class Config:
     anthropic_model: str = "claude-sonnet-4-6"
     openrouter_model: str = "google/gemini-2.5-flash"
     openrouter_api_key: str | None = None
-    intent_detector: str = "heuristic"  # "heuristic" | "llm"
+    intent_detector: str = "llm"  # "heuristic" | "llm"
     diarize: str = "off"  # "off" | "vibevoice"
     recording_path: str | None = None
     max_agent_calls: int = 50  # per-session cap; -1 = unlimited
@@ -58,6 +59,7 @@ class Config:
 
         return cls(
             stt=e.get("DEEPTALK_STT", "fake"),
+            parakeet_model=e.get("DEEPTALK_PARAKEET_MODEL", "nvidia/parakeet-tdt-0.6b"),
             whisper_model=e.get("DEEPTALK_WHISPER_MODEL", "base"),
             audio=e.get("DEEPTALK_AUDIO", "file"),
             session_id=e.get("DEEPTALK_SESSION_ID", "demo"),
@@ -77,7 +79,7 @@ class Config:
             anthropic_model=e.get("DEEPTALK_ANTHROPIC_MODEL", "claude-sonnet-4-6"),
             openrouter_model=e.get("DEEPTALK_OPENROUTER_MODEL", "google/gemini-2.5-flash"),
             openrouter_api_key=e.get("OPENROUTER_API_KEY"),
-            intent_detector=e.get("DEEPTALK_INTENT", "heuristic"),
+            intent_detector=e.get("DEEPTALK_INTENT", "llm"),
             diarize=e.get("DEEPTALK_DIARIZE", "off"),
             recording_path=e.get("DEEPTALK_RECORDING"),
             max_agent_calls=int(e.get("DEEPTALK_MAX_AGENT_CALLS", "50")),

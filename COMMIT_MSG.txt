@@ -1,18 +1,10 @@
-feat: timeline system, live audio WebSocket, Ollama provider, and UI overhaul
+feat: parakeet ASR backend, default LLM intent, detailed README docs
 
-- Timeline system (src/deeptalk/timeline/): background service that periodically
-  summarizes transcript text via Ollama, merges results into a persistent SQLite
-  store, and pushes live updates over /ws/timeline
-- Live audio WebSocket (/ws/live-audio): accepts raw 16 kHz 16-bit PCM frames
-  from the browser and feeds them into the STT engine in real time
-- Ollama provider: local LLM support via Ollama's /api/generate endpoint,
-  used by both the search provider chain and the timeline summarizer
-- UI overhaul:
-  - New InputBar (text + recording + file upload), MessageBubble, TimelinePanel
-    (dot + swimlane views), useTimeline, useSessions hooks
-  - Removed standalone AskBox, AudioBar, TranscriptPane
-  - Chat-style feed layout with transcript bubbles, user messages, and artifact cards
-- TranscriptStore: added list_sessions() for timeline iteration
-- Config: added ollama_url, ollama_model, timeline_interval env vars
+- Add Parakeet ASR backend (DEEPTALK_STT=parakeet) using NeMo streaming
+  pipeline, configurable via DEEPTALK_PARAKEET_MODEL
+- Switch default intent detector from heuristic to llm (DEEPTALK_INTENT=llm)
+- README: add STT backend comparison table (Whisper/Qwen/Parakeet/Nemotron),
+  full pipeline explanation (event bus, orchestrator, agents, intent detection,
+  diarization, timeline), and distributed setup guide (Mac + GPU laptop)
 
 Co-authored-by: CommandCodeBot <noreply@commandcode.ai>

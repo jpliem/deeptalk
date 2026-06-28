@@ -47,6 +47,18 @@ def test_build_stt_unknown():
         build_stt(cfg)
 
 
+@pytest.mark.skip(reason="requires GPU + HuggingFace auth to download gated model")
+def test_build_stt_parakeet(tmp_path):
+    from deeptalk.stt.nemotron import NemotronSttLive
+    cfg = Config.from_env({
+        "DEEPTALK_STT": "parakeet",
+        "DEEPTALK_AUDIO": "file",
+        "DEEPTALK_AUDIO_FILE": str(tmp_path / "a.wav"),
+    })
+    stt = build_stt(cfg)
+    assert isinstance(stt, NemotronSttLive)
+
+
 def test_build_stt_whisper(tmp_path):
     from deeptalk.stt.whisper import WhisperStreamingSttLive
     cfg = Config.from_env({
