@@ -13,15 +13,20 @@ _DEFAULT_FIXTURE = str(
 class Config:
     """Runtime configuration, sourced from environment variables."""
 
-    stt: str = "fake"  # "fake" | "nemotron" | "whisper"
-    nemo_model: str = "nvidia/nemotron-speech-streaming-en-0.6b"
+    stt: str = "fake"  # "fake" | "nemotron" | "qwen"
     whisper_model: str = "base"  # faster-whisper size: tiny|base|small|medium|large-v3
     audio: str = "file"  # "file" | "mic"
     session_id: str = "demo"
     db_path: str = "deeptalk-demo.db"
     fixture_path: str = _DEFAULT_FIXTURE
     audio_file: str | None = None
-    search_provider: str = "fake"  # "fake" | "anthropic" | "openrouter"
+    qwen_asr_url: str = "http://127.0.0.1:8010/v1/audio/transcriptions"
+    qwen_asr_model: str = "Qwen/Qwen3-ASR-0.6B"
+    qwen_asr_chunk_ms: int = 2000
+    search_provider: str = "fake"  # "fake" | "anthropic" | "openrouter" | "ollama"
+    ollama_url: str = "http://localhost:11434"  # DEEPTALK_OLLAMA_URL
+    ollama_model: str = "llama3.2:3b"           # DEEPTALK_OLLAMA_MODEL
+    timeline_interval: int = 45                 # DEEPTALK_TIMELINE_INTERVAL (0 = disabled)
     anthropic_model: str = "claude-sonnet-4-6"
     openrouter_model: str = "google/gemini-2.5-flash"
     openrouter_api_key: str | None = None
@@ -53,14 +58,22 @@ class Config:
 
         return cls(
             stt=e.get("DEEPTALK_STT", "fake"),
-            nemo_model=e.get("DEEPTALK_NEMO_MODEL", "nvidia/nemotron-speech-streaming-en-0.6b"),
             whisper_model=e.get("DEEPTALK_WHISPER_MODEL", "base"),
             audio=e.get("DEEPTALK_AUDIO", "file"),
             session_id=e.get("DEEPTALK_SESSION_ID", "demo"),
             db_path=e.get("DEEPTALK_DB", "deeptalk-demo.db"),
             fixture_path=e.get("DEEPTALK_FIXTURE", _DEFAULT_FIXTURE),
             audio_file=e.get("DEEPTALK_AUDIO_FILE"),
+            qwen_asr_url=e.get(
+                "DEEPTALK_QWEN_ASR_URL",
+                "http://127.0.0.1:8010/v1/audio/transcriptions",
+            ),
+            qwen_asr_model=e.get("DEEPTALK_QWEN_ASR_MODEL", "Qwen/Qwen3-ASR-0.6B"),
+            qwen_asr_chunk_ms=int(e.get("DEEPTALK_QWEN_ASR_CHUNK_MS", "2000")),
             search_provider=e.get("DEEPTALK_SEARCH_PROVIDER", "fake"),
+            ollama_url=e.get("DEEPTALK_OLLAMA_URL", "http://localhost:11434"),
+            ollama_model=e.get("DEEPTALK_OLLAMA_MODEL", "llama3.2:3b"),
+            timeline_interval=int(e.get("DEEPTALK_TIMELINE_INTERVAL", "45")),
             anthropic_model=e.get("DEEPTALK_ANTHROPIC_MODEL", "claude-sonnet-4-6"),
             openrouter_model=e.get("DEEPTALK_OPENROUTER_MODEL", "google/gemini-2.5-flash"),
             openrouter_api_key=e.get("OPENROUTER_API_KEY"),
@@ -73,4 +86,3 @@ class Config:
             host=e.get("DEEPTALK_HOST", "127.0.0.1"),
             port=int(e.get("DEEPTALK_PORT", "8000")),
         )
-

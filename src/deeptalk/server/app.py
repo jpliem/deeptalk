@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 import shutil
 import tempfile
@@ -24,6 +25,7 @@ from deeptalk.llm.router import ModelRouter
 from deeptalk.stt.factory import build_stt
 from deeptalk.transcript.events import TranscriptEvent
 from deeptalk.transcript.store import TranscriptStore
+from deeptalk.timeline.store import TimelineStore
 from deeptalk.wiki.store import WikiStore
 
 
@@ -87,6 +89,8 @@ def create_app(
     recording_path: str | None = None,
     gpu_lease: "GpuLease | None" = None,
     config: Config | None = None,
+    timeline_store: "TimelineStore | None" = None,
+    timeline_bus: EventBus | None = None,
 ) -> FastAPI:
     app = FastAPI(title="DeepTalk", lifespan=lifespan)
 
@@ -225,6 +229,8 @@ def create_app(
                 artifact_store.clear(session_id)
             if wiki_store:
                 wiki_store.clear(session_id)
+            if timeline_store:
+                timeline_store.clear(session_id)
             return {"status": "ok"}
 
     @app.post("/upload")
@@ -291,6 +297,56 @@ def create_app(
                         os.unlink(path)
                     except OSError:
                         pass
+
+    @app.websocket("/ws/live-audio")
+    async def ws_live_audio(ws: WebSocket) -> None:
+        """Receive 16 kHz 16-bit mono PCM frames, feed them into the STT engine live.
+
+        Open this WebSocket *after* connecting to /ws/transcript so you receive
+        transcript events in real time.  Send raw PCM binary frames; close the
+        WebSocket to stop listening.
+        """
+        if config is None:
+            await ws.close(code=1011, reason="config not available")
+            return
+
+        session_id = ws.query_params.get("session_id", "default")
+
+        await ws.accept()
+
+        from deeptalk.audio.ws_source import WebSocketAudioSource
+        from deeptalk.stt.factory import build_stt
+        from deeptalk.ingest import run_ingest
+
+        source = WebSocketAudioSource()
+        stt = await asyncio.to_thread(build_stt, config, source, True)
+        ingest_task = asyncio.create_task(run_ingest(stt, store, bus))
+
+        try:
+            while True:
+                data = await ws.receive_bytes()
+                source.push(data)
+        except WebSocketDisconnect:
+            pass
+        finally:
+            source.close()
+            ingest_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await ingest_task
+
+    if timeline_store is not None and timeline_bus is not None:
+
+        @app.websocket("/ws/timeline")
+        async def ws_timeline(ws: WebSocket) -> None:
+            session_id = ws.query_params.get("session_id", "default")
+            await ws.accept()
+            try:
+                backlog = timeline_store.all_entries(session_id)
+                await _stream_session(
+                    ws.send_json, backlog, timeline_bus, session_id
+                )
+            except WebSocketDisconnect:
+                pass
 
     # Mount the built UI LAST so /health and /ws/transcript take precedence.
     if ui_dir and _Path(ui_dir).is_dir():

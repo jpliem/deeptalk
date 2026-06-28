@@ -22,10 +22,13 @@ from deeptalk.gpu.lease import GpuLease
 from deeptalk.ingest import run_ingest
 from deeptalk.intent.factory import build_detector
 from deeptalk.llm.factory import build_router
+from deeptalk.llm.ollama_provider import OllamaProvider
 from deeptalk.orchestrator import Orchestrator, run_orchestrator
 from deeptalk.server.app import create_app
 from deeptalk.server.dispatch import make_fire
 from deeptalk.stt.factory import build_stt
+from deeptalk.timeline.store import TimelineStore
+from deeptalk.timeline.service import TimelineService
 from deeptalk.transcript.store import TranscriptStore
 from deeptalk.wiki.store import WikiStore
 
@@ -46,6 +49,10 @@ def main() -> None:
 
     cost_tracker = CostTracker(config.max_agent_calls)
     gpu_lease = GpuLease()
+
+    # Timeline (rolling summarization)
+    timeline_store = TimelineStore(config.db_path)
+    timeline_bus = EventBus()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -74,13 +81,28 @@ def main() -> None:
         if stt is not None:
             ingest_task = asyncio.create_task(run_ingest(stt, store, bus))
         orch_task = asyncio.create_task(run_orchestrator(bus, orchestrator, config.session_id))
+
+        # Start timeline service (if interval > 0)
+        timeline_task: asyncio.Task | None = None
+        if config.timeline_interval > 0:
+            ollama = OllamaProvider(url=config.ollama_url, model=config.ollama_model)
+            svc = TimelineService(
+                store=timeline_store,
+                transcript_store=store,
+                timeline_bus=timeline_bus,
+                ollama=ollama,
+                interval=config.timeline_interval,
+            )
+            timeline_task = asyncio.create_task(svc.run())
+
         app.state.ingest_task = ingest_task
         app.state.orch_task = orch_task
+        app.state.timeline_task = timeline_task
         try:
             yield
         finally:
-            for task in (ingest_task, orch_task):
-                if task is not None:
+            for task in (ingest_task, orch_task, timeline_task):
+                if task:
                     task.cancel()
                     with contextlib.suppress(asyncio.CancelledError):
                         await task
@@ -99,6 +121,8 @@ def main() -> None:
         recording_path=config.recording_path,
         gpu_lease=gpu_lease,
         config=config,
+        timeline_store=timeline_store,
+        timeline_bus=timeline_bus,
     )
     uvicorn.run(app, host=config.host, port=config.port)
 

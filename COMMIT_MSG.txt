@@ -1,0 +1,18 @@
+feat: timeline system, live audio WebSocket, Ollama provider, and UI overhaul
+
+- Timeline system (src/deeptalk/timeline/): background service that periodically
+  summarizes transcript text via Ollama, merges results into a persistent SQLite
+  store, and pushes live updates over /ws/timeline
+- Live audio WebSocket (/ws/live-audio): accepts raw 16 kHz 16-bit PCM frames
+  from the browser and feeds them into the STT engine in real time
+- Ollama provider: local LLM support via Ollama's /api/generate endpoint,
+  used by both the search provider chain and the timeline summarizer
+- UI overhaul:
+  - New InputBar (text + recording + file upload), MessageBubble, TimelinePanel
+    (dot + swimlane views), useTimeline, useSessions hooks
+  - Removed standalone AskBox, AudioBar, TranscriptPane
+  - Chat-style feed layout with transcript bubbles, user messages, and artifact cards
+- TranscriptStore: added list_sessions() for timeline iteration
+- Config: added ollama_url, ollama_model, timeline_interval env vars
+
+Co-authored-by: CommandCodeBot <noreply@commandcode.ai>

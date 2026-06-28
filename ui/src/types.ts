@@ -37,6 +37,26 @@ export interface Artifact {
   error: string | null
 }
 
+export interface TimelineEntry {
+  id: string
+  session_id: string
+  topic_id: string
+  label: string
+  start_ts: number
+  end_ts: number
+  summary: string
+  decisions: string[]
+  action_items: string[]
+  created_at: number
+}
+
+export interface TimelineEvent {
+  session_id: string
+  entries: TimelineEntry[]
+  updated_ids: string[]
+  created_at: number
+}
+
 export interface Wiki {
   session_id: string
   topics: string[]

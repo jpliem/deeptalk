@@ -70,13 +70,32 @@ cd ui && npm install && npm run build && cd ..   # fixes the / 404
   `DEEPTALK_AUDIO=mic` will fail to capture. **Use a WAV file instead** on WSL.
 - Open `http://localhost:8000/` from your Windows browser — WSL2 forwards localhost.
 
-**Transcribe a 16 kHz mono WAV through the real model (recommended first run on WSL):**
+**Transcribe a 16 kHz mono WAV through Nemotron (recommended first run on WSL):**
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 DEEPTALK_STT=nemotron DEEPTALK_AUDIO=file DEEPTALK_AUDIO_FILE=/path/16k_mono.wav \
   DEEPTALK_SEARCH_PROVIDER=anthropic \
   uv run python -m deeptalk.server
 ```
+
+### Qwen3-ASR sidecar
+
+Qwen3-ASR is supported as an STT backend through an OpenAI-compatible ASR
+sidecar. This keeps vLLM/CUDA dependencies out of the main FastAPI process.
+Start the Qwen service separately, then point DeepTalk at it:
+
+```bash
+# example sidecar command; install/run qwen-asr or vLLM in that environment
+qwen-asr-serve Qwen/Qwen3-ASR-0.6B --host 127.0.0.1 --port 8010
+
+DEEPTALK_STT=qwen DEEPTALK_AUDIO=file DEEPTALK_AUDIO_FILE=/path/16k_mono.wav \
+  DEEPTALK_QWEN_ASR_URL=http://127.0.0.1:8010/v1/audio/transcriptions \
+  DEEPTALK_QWEN_ASR_MODEL=Qwen/Qwen3-ASR-0.6B \
+  uv run python -m deeptalk.server
+```
+
+For lower latency, reduce `DEEPTALK_QWEN_ASR_CHUNK_MS`; for better context and
+fewer repeated partials, increase it. The default is 2000 ms.
 
 **Live microphone (Linux desktop, not WSL):**
 ```bash
@@ -130,9 +149,12 @@ In the browser, the **"Build wiki"** button does the same.
 
 | Variable | Default | Meaning |
 |----------|---------|---------|
-| `DEEPTALK_STT` | `fake` | `fake` (fixture replay) or `nemotron` (real STT, GPU) |
+| `DEEPTALK_STT` | `fake` | `fake` (fixture replay), `nemotron` (real STT, GPU), or `qwen` (Qwen3-ASR sidecar) |
 | `DEEPTALK_AUDIO` | `file` | `file` or `mic` (when STT=nemotron). **mic unavailable on WSL** |
 | `DEEPTALK_AUDIO_FILE` | — | path to a 16 kHz mono WAV (when AUDIO=file) |
+| `DEEPTALK_QWEN_ASR_URL` | `http://127.0.0.1:8010/v1/audio/transcriptions` | OpenAI-compatible Qwen3-ASR transcription endpoint |
+| `DEEPTALK_QWEN_ASR_MODEL` | `Qwen/Qwen3-ASR-0.6B` | Qwen3-ASR model served by the sidecar |
+| `DEEPTALK_QWEN_ASR_CHUNK_MS` | `2000` | PCM window size sent to Qwen for near-realtime transcription |
 | `DEEPTALK_SEARCH_PROVIDER` | `fake` | `fake` or `anthropic` (real agents — needs `ANTHROPIC_API_KEY`) |
 | `DEEPTALK_ANTHROPIC_MODEL` | `claude-sonnet-4-6` | model for cloud agents (override if the alias errors) |
 | `DEEPTALK_INTENT` | `heuristic` | `heuristic` (free) or `llm` (smarter; uses the provider) |
