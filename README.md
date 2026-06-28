@@ -117,6 +117,7 @@ DeepTalk supports four STT backends, all running **locally** — no cloud transc
 | **Fake** | `fake` | CPU | N/A (fixture replay) | Dev/testing only; replays a pre-recorded JSONL fixture |
 | **faster-whisper** | `whisper` | CPU (int8) or CUDA (float16) | Excellent (large-v3 is SOTA) | Model sizes: tiny (39M) → large-v3 (1.5B). Runs in-process. Good English + 99 languages. Streaming mode transcribes on silence gaps |
 | **Qwen3-ASR** | `qwen` | CUDA only | Good (0.6B) | Runs as a separate sidecar process (scratch/asr_sidecar.py). Sends 2s PCM chunks as WAV files to an OpenAI-compatible HTTP endpoint. Designed for bilingual EN/ZH |
+| **Mega-ASR** | `qwen` (same sidecar) | CUDA only | Better in noisy conditions | Built on Qwen3-ASR with robustness LoRAs. Replace the sidecar with [Mega-ASR's streaming entrypoint](https://github.com/xzf-thu/Mega-ASR). Same `DEEPTALK_STT=qwen` config |
 | **Nemotron** | `nemotron` | CUDA (nemo toolkit) | Good (0.6B) | NeMo cache-aware streaming. Not yet validated on real hardware |
 | **Parakeet** | `parakeet` | CUDA (nemo toolkit) | SOTA English ASR | NVIDIA Parakeet TDT models (0.6B, 1.1B). Uses the same NeMo streaming pipeline as Nemotron. Pick a model via `DEEPTALK_PARAKEET_MODEL` |
 
@@ -262,6 +263,28 @@ DEEPTALK_STT=whisper DEEPTALK_AUDIO_FILE=/path/16k_mono.wav uv run python -m dee
 qwen-asr-serve Qwen/Qwen3-ASR-0.6B --host 127.0.0.1 --port 8010
 DEEPTALK_STT=qwen DEEPTALK_AUDIO_FILE=/path/16k_mono.wav uv run python -m deeptalk.server
 ```
+
+### Mega-ASR (robust ASR for noisy conditions)
+
+[Mega-ASR](https://github.com/xzf-thu/Mega-ASR) is a robustness-enhanced variant of Qwen3-ASR that adds LoRA adapters for noisy, far-field, and distorted audio. It uses the same base model (`Qwen/Qwen3-ASR-0.6B`) with additional training on 54 acoustic scenarios.
+
+Since Mega-ASR exposes the same OpenAI-compatible API as Qwen3-ASR, you just swap the sidecar process — no config changes needed:
+
+```bash
+# 1. Clone Mega-ASR and install
+git clone https://github.com/xzf-thu/Mega-ASR.git
+cd Mega-ASR
+pip install -r requirements.txt
+python scripts/download.py
+
+# 2. Start the Mega-ASR streaming sidecar instead of scratch/asr_sidecar.py
+python infer_vllm_streaming.py --step_ms 2000
+
+# 3. Run DeepTalk with the same qwen config (points at same :8010 endpoint)
+DEEPTALK_STT=qwen uv run python -m deeptalk.server
+```
+
+The sidecar serves on port 8010 by default, so `DEEPTALK_QWEN_ASR_URL` stays unchanged. For best results with DeepTalk's 2-second chunks, use `--step_ms 2000` and `--reset_interval_sec 120`.
 
 ### Timeline (rolling summarization via Ollama)
 

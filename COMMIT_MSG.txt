@@ -1,8 +1,6 @@
-fix: route POST /ask through intent detector instead of hardcoding search
+docs: add Mega-ASR optional STT backend to README
 
-The /ask endpoint now detects intent and fires the appropriate agent
-(search/proscons/planning/mockup) instead of always running search.
-Stores fire callback and detector on app.state so they're accessible
-from request handlers.
+Mega-ASR is a robustness-enhanced variant of Qwen3-ASR for noisy
+environments. Drop-in sidecar replacement, same config.
 
 Co-authored-by: CommandCodeBot <noreply@commandcode.ai>
