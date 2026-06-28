@@ -1,7 +1,8 @@
 # DeepTalk
 
-Real-time meeting assistant. DeepTalk listens to a discussion, transcribes it via
-STT (fake / Nemotron / Whisper / Qwen3-ASR), auto-detects intent, fires AI agents
+**Proactive meeting assistant.** Unlike transcription tools that just write down what was said and summarize later, DeepTalk listens *as the discussion unfolds* — it classifies each utterance in real time, identifies whether the team is asking a question, weighing options, planning steps, or sketching a design, and immediately fires the right AI agent. Search answers, pros/cons, plans, and Mermaid diagrams appear as live cards in the chat feed while the meeting is still happening. A background timeline service builds a running summary of topics and decisions. Everything runs locally — no cloud dependency.
+
+DeepTalk transcribes via STT (fake / Nemotron / Whisper / Qwen3-ASR), auto-detects intent, fires AI agents
 that produce search answers, pros/cons, plans, and Mermaid diagrams — surfaced as
 cards on a live chat-style dashboard.  A background timeline service periodically
 summarizes the conversation into topics, decisions, and action items.  Post-session,

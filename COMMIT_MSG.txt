@@ -1,6 +1,6 @@
-fix: skip intent detection on manual chat (/ask)
+docs: position DeepTalk as a proactive meeting assistant
 
-The textbox is a manual action — just answer the question directly via
-search agent with transcript context. No intent routing.
+Emphasize live intent detection vs post-meeting summaries as the
+core differentiator from transcription-only tools.
 
 Co-authored-by: CommandCodeBot <noreply@commandcode.ai>
