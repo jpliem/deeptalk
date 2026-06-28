@@ -13,6 +13,7 @@ from deeptalk.bus import EventBus
 from deeptalk.cost.tracker import CostTracker
 from deeptalk.intent.models import Intent
 from deeptalk.llm.router import ModelRouter
+from deeptalk.transcript.store import TranscriptStore
 
 _AGENTS = {
     "search": run_search,
@@ -31,9 +32,20 @@ def make_fire(
     tracker: CostTracker | None = None,
     timeout: float = 30.0,
     enable_mockup: bool = True,
+    transcript_store: TranscriptStore | None = None,
 ) -> Callable[[Intent], Awaitable[None]]:
     """Build the orchestrator's `fire` callback that routes a kind to its agent,
     enforcing the per-session cost cap and per-agent timeout."""
+
+    async def _build_transcript_context() -> str:
+        if transcript_store is None:
+            return ""
+        events = transcript_store.all_events(session_id)
+        lines = [e.text for e in events if e.is_final]
+        if not lines:
+            return ""
+        tail = lines[-20:]  # last 20 lines
+        return "Recent meeting transcript:\n" + "\n".join(tail)
 
     async def fire(intent: Intent) -> None:
         if intent.kind == "mockup" and not enable_mockup:
@@ -70,6 +82,8 @@ def make_fire(
         store.append(pending)
         await bus.publish(pending)
 
-        await runner(intent.query, session_id, router, store, bus, now(), timeout=timeout, artifact_id=art_id)
+        ctx = await _build_transcript_context()
+        await runner(intent.query, session_id, router, store, bus, now(),
+                     timeout=timeout, artifact_id=art_id, transcript_context=ctx)
 
     return fire

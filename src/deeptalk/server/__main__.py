@@ -61,6 +61,7 @@ def main() -> None:
             router, artifact_store, artifact_bus, config.session_id, time.time,
             tracker=cost_tracker, timeout=config.agent_timeout,
             enable_mockup=config.enable_mockup,
+            transcript_store=store,
         )
         orchestrator = Orchestrator(detector, fire)
 

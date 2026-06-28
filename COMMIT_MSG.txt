@@ -1,11 +1,8 @@
-fix: pass WebSocket session_id to live audio STT
+feat: inject transcript context into search agent
 
-The /ws/live-audio handler was using config.session_id for transcript
-events instead of the WebSocket's session_id, causing transcripts from
-live mic to never reach the browser UI. Fix by threading the WebSocket
-session_id through build_stt().
-
-Also restored nemo_model config field that was dropped during earlier
-merge.
+Agents now receive the last 20 lines of transcript so they can answer
+questions about the meeting. The search agent prepends context before
+sending the query to the LLM. Also added **kwargs to all agent runners
+to allow extensible keyword passing from dispatch.
 
 Co-authored-by: CommandCodeBot <noreply@commandcode.ai>

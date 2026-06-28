@@ -20,13 +20,18 @@ async def run_search(
     now: float,
     timeout: float = 30.0,
     artifact_id: str | None = None,
+    transcript_context: str = "",
 ) -> Artifact:
     """Run a web search for `query`, persist + publish the resulting Artifact."""
     art_id = artifact_id or uuid.uuid4().hex
     try:
         async with asyncio.timeout(timeout):
             providers = router.chain_for(AGENT)
-            result = await run_with_fallback(providers, lambda p: p.search_answer(query))
+            # Prepend transcript context so the LLM can answer about the meeting
+            contextualized = query
+            if transcript_context:
+                contextualized = f"{transcript_context}\n\nQuestion about this meeting: {query}"
+            result = await run_with_fallback(providers, lambda p: p.search_answer(contextualized))
         artifact = Artifact(
             id=art_id,
             session_id=session_id,

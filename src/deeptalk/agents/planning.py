@@ -29,6 +29,7 @@ async def run_planning(
     now: float,
     timeout: float = 30.0,
     artifact_id: str | None = None,
+    **kwargs: object,
 ) -> Artifact:
     return await run_completion_agent(
         agent=AGENT,
