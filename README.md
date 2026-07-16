@@ -124,6 +124,14 @@ DeepTalk supports four STT backends, all running **locally** — no cloud transc
 
 The file source expects a **16 kHz mono 16-bit WAV**. Live mic streams PCM frames at the same format over `/ws/live-audio`.
 
+#### Live Qwen hardening
+
+The Qwen path processes live audio in ~2 s windows, which historically caused three problems: the model re-detected the language on every window (flipping languages mid-meeting), hallucinated repeated text on silence or cut-off speech, and every fragment was treated as a finished sentence (firing agents mid-utterance). Three layers now guard against this:
+
+1. **Language pinning** — set `DEEPTALK_QWEN_LANGUAGE` (e.g. `en` or `zh`) and it is passed through to the sidecar on every request.
+2. **Silence gating + phrase assembly** — windows below `DEEPTALK_QWEN_RMS_THRESHOLD` never reach the model; voiced windows accumulate into one phrase that is emitted as a single final transcript event when a silent gap arrives (or after `DEEPTALK_QWEN_MAX_PHRASE_MS`). Agents therefore react to whole sentences.
+3. **Repeat suppression** — consecutive duplicate window texts are dropped and token loops (`the the the …`) are collapsed; the orchestrator additionally skips lines that still look garbled (repetition/symbol-soup heuristics) before intent detection.
+
 ### Event bus
 
 Two in-process pub/sub buses (`src/deeptalk/bus.py`):
@@ -375,6 +383,9 @@ curl -X POST localhost:8000/finalize -H 'content-type: application/json' -d '{"s
 | `DEEPTALK_QWEN_ASR_URL` | `http://127.0.0.1:8010/v1/audio/transcriptions` | Qwen3-ASR endpoint |
 | `DEEPTALK_QWEN_ASR_MODEL` | `Qwen/Qwen3-ASR-0.6B` | Qwen3-ASR model name |
 | `DEEPTALK_QWEN_ASR_CHUNK_MS` | `2000` | PCM window for live Qwen |
+| `DEEPTALK_QWEN_LANGUAGE` | — (auto) | Pin the ASR language (e.g. `en`, `zh`) — prevents per-chunk language flipping |
+| `DEEPTALK_QWEN_RMS_THRESHOLD` | `200` | int16 RMS below which a window counts as silence (never sent to the model) |
+| `DEEPTALK_QWEN_MAX_PHRASE_MS` | `15000` | Force-finalize a phrase after this much continuous speech |
 | `DEEPTALK_SEARCH_PROVIDER` | `fake` | `fake`, `anthropic`, `openrouter`, `ollama` |
 | `DEEPTALK_OLLAMA_URL` | `http://localhost:11434` | Ollama server URL |
 | `DEEPTALK_OLLAMA_MODEL` | `llama3.2:3b` | Ollama model name |
@@ -382,6 +393,7 @@ curl -X POST localhost:8000/finalize -H 'content-type: application/json' -d '{"s
 | `DEEPTALK_ANTHROPIC_MODEL` | `claude-sonnet-4-6` | Claude model name |
 | `DEEPTALK_OPENROUTER_MODEL` | `google/gemini-2.5-flash` | OpenRouter model |
 | `DEEPTALK_INTENT` | `llm` | `llm` (uses search provider) or `heuristic` (keyword rules) |
+| `DEEPTALK_INTENT_MODEL` | — | Separate Ollama model for intent classification (e.g. `qwen2.5:7b`); agents keep `DEEPTALK_OLLAMA_MODEL` |
 | `DEEPTALK_DIARIZE` | `off` | `off` or `vibevoice` |
 | `DEEPTALK_RECORDING` | — | WAV path for recording + diarization |
 | `DEEPTALK_MAX_AGENT_CALLS` | `50` | Per-session agent cap (`-1` = unlimited) |
