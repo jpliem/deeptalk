@@ -43,7 +43,7 @@ describe('ArtifactCard', () => {
       <ArtifactCard artifact={art({ status: 'error', payload: {}, error: 'api down' })} />,
     )
     expect(screen.getByText('api down')).toBeInTheDocument()
-    expect(container.querySelector('.card.error')).toBeTruthy()
+    expect(container.querySelector('.artifact-card.error')).toBeTruthy()
   })
 
   it('renders pros, cons, and recommendation for a proscons artifact', () => {

@@ -13,9 +13,24 @@ const wiki: Wiki = {
 }
 
 describe('WikiPanel', () => {
-  it('shows an empty state before building', () => {
+  it('renders no wiki content before building', () => {
     render(<WikiPanel onFinalize={vi.fn().mockResolvedValue(null)} />)
-    expect(screen.getByText(/build a wiki/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /build/i })).toBeInTheDocument()
+    expect(screen.queryByText('database choice')).not.toBeInTheDocument()
+  })
+
+  it('calls onDownloadReport when the report button is clicked', async () => {
+    const onReport = vi.fn().mockResolvedValue(undefined)
+    render(
+      <WikiPanel onFinalize={vi.fn().mockResolvedValue(null)} onDownloadReport={onReport} />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /report/i }))
+    expect(onReport).toHaveBeenCalled()
+  })
+
+  it('hides the report button when onDownloadReport is not provided', () => {
+    render(<WikiPanel onFinalize={vi.fn().mockResolvedValue(null)} />)
+    expect(screen.queryByRole('button', { name: /report/i })).not.toBeInTheDocument()
   })
 
   it('builds and renders topics, decisions, action items', async () => {
