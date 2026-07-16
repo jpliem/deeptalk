@@ -83,7 +83,13 @@ def build_stt(
         return QwenAsrSttLive(
             session_id=sid,
             audio_source=audio,
-            client=QwenAsrHttpClient(config.qwen_asr_url, config.qwen_asr_model),
+            client=QwenAsrHttpClient(
+                config.qwen_asr_url,
+                config.qwen_asr_model,
+                language=config.qwen_language,
+            ),
             chunk_ms=config.qwen_asr_chunk_ms,
+            rms_threshold=config.qwen_rms_threshold,
+            max_phrase_ms=config.qwen_max_phrase_ms,
         )
     raise ValueError(f"unknown stt: {config.stt}")

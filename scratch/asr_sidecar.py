@@ -31,7 +31,8 @@ async def load_model() -> None:
         device_map="cuda:0",
         attn_implementation="sdpa",
         max_inference_batch_size=1,
-        max_new_tokens=256,
+        # 2s of speech is ~10 words; a small cap bounds hallucination loops.
+        max_new_tokens=96,
     )
     print("Model loaded.", flush=True)
 
@@ -40,6 +41,7 @@ async def load_model() -> None:
 async def transcribe(
     file: UploadFile = File(...),
     model_name: str = Form("Qwen/Qwen3-ASR-0.6B"),
+    language: str | None = Form(None),
 ):
     suffix = Path(file.filename or "audio.wav").suffix or ".wav"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
@@ -48,7 +50,9 @@ async def transcribe(
         tmp_path = tmp.name
 
     try:
-        results = model.transcribe(audio=tmp_path, language=None)
+        # language=None lets the model auto-detect per chunk, which flips
+        # language mid-meeting; DeepTalk sends DEEPTALK_QWEN_LANGUAGE to pin it.
+        results = model.transcribe(audio=tmp_path, language=language or None)
         text = results[0].text if results else ""
         return {"text": text}
     finally:

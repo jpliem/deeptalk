@@ -25,6 +25,9 @@ class Config:
     qwen_asr_url: str = "http://127.0.0.1:8010/v1/audio/transcriptions"
     qwen_asr_model: str = "Qwen/Qwen3-ASR-0.6B"
     qwen_asr_chunk_ms: int = 2000
+    qwen_language: str | None = None  # force ASR language (e.g. "en", "zh"); None = auto
+    qwen_rms_threshold: int = 200  # int16 RMS below which a window is treated as silence
+    qwen_max_phrase_ms: int = 15000  # force-finalize a phrase after this much speech
     search_provider: str = "fake"  # "fake" | "anthropic" | "openrouter" | "ollama"
     ollama_url: str = "http://localhost:11434"  # DEEPTALK_OLLAMA_URL
     ollama_model: str = "llama3.2:3b"           # DEEPTALK_OLLAMA_MODEL
@@ -33,6 +36,7 @@ class Config:
     openrouter_model: str = "google/gemini-2.5-flash"
     openrouter_api_key: str | None = None
     intent_detector: str = "heuristic"  # "heuristic" | "llm"
+    intent_model: str | None = None  # Ollama model for intent classification (None = ollama_model)
     diarize: str = "off"  # "off" | "vibevoice"
     recording_path: str | None = None
     max_agent_calls: int = 50  # per-session cap; -1 = unlimited
@@ -74,6 +78,9 @@ class Config:
             ),
             qwen_asr_model=e.get("DEEPTALK_QWEN_ASR_MODEL", "Qwen/Qwen3-ASR-0.6B"),
             qwen_asr_chunk_ms=int(e.get("DEEPTALK_QWEN_ASR_CHUNK_MS", "2000")),
+            qwen_language=e.get("DEEPTALK_QWEN_LANGUAGE") or None,
+            qwen_rms_threshold=int(e.get("DEEPTALK_QWEN_RMS_THRESHOLD", "200")),
+            qwen_max_phrase_ms=int(e.get("DEEPTALK_QWEN_MAX_PHRASE_MS", "15000")),
             search_provider=e.get("DEEPTALK_SEARCH_PROVIDER", "fake"),
             ollama_url=e.get("DEEPTALK_OLLAMA_URL", "http://localhost:11434"),
             ollama_model=e.get("DEEPTALK_OLLAMA_MODEL", "llama3.2:3b"),
@@ -82,6 +89,7 @@ class Config:
             openrouter_model=e.get("DEEPTALK_OPENROUTER_MODEL", "google/gemini-2.5-flash"),
             openrouter_api_key=e.get("OPENROUTER_API_KEY"),
             intent_detector=e.get("DEEPTALK_INTENT", "llm"),
+            intent_model=e.get("DEEPTALK_INTENT_MODEL") or None,
             diarize=e.get("DEEPTALK_DIARIZE", "off"),
             recording_path=e.get("DEEPTALK_RECORDING"),
             max_agent_calls=int(e.get("DEEPTALK_MAX_AGENT_CALLS", "50")),
