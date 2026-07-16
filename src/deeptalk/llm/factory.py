@@ -9,6 +9,7 @@ from deeptalk.llm.router import ModelRouter
 def build_router(config: Config) -> ModelRouter:
     providers: dict[str, LlmProvider] = {"fake": FakeLlmProvider()}
     chain = ["fake"]
+    intent_chain: list[str] | None = None
 
     if config.search_provider == "anthropic":
         from deeptalk.llm.anthropic_provider import AnthropicProvider
@@ -31,11 +32,17 @@ def build_router(config: Config) -> ModelRouter:
             model=config.ollama_model,
         )
         chain = ["ollama"]
+        if config.intent_model and config.intent_model != config.ollama_model:
+            providers["ollama-intent"] = OllamaProvider(
+                url=config.ollama_url,
+                model=config.intent_model,
+            )
+            intent_chain = ["ollama-intent"]
 
     return ModelRouter(
         providers=providers,
         routes={
-            "search": chain, "intent": chain, "proscons": chain,
+            "search": chain, "intent": intent_chain or chain, "proscons": chain,
             "planning": chain, "wiki": chain, "mockup": chain,
         },
         default=chain,

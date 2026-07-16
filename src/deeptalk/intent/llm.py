@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import re
 
 from deeptalk.intent.models import Intent, normalize_topic
 from deeptalk.llm.router import ModelRouter, run_with_fallback
+
+log = logging.getLogger(__name__)
 
 _VALID_KINDS = ("search", "debate", "planning", "mockup")
 
@@ -45,13 +48,17 @@ class LlmIntentDetector:
                 run_with_fallback(providers, lambda p: p.complete(prompt)),
                 timeout=15.0,
             )
-        except Exception:  # noqa: BLE001 - detection is best-effort
+        except Exception as error:  # noqa: BLE001 - detection is best-effort
+            log.warning("intent detection failed for %.60r: %r", text, error)
             return None
         data = _parse(raw)
         if not data:
+            log.warning("intent response not parseable as JSON: %.120r", raw)
             return None
         kind = data.get("kind")
         if kind not in _VALID_KINDS:
+            if kind != "none":
+                log.warning("intent response has unknown kind %r: %.120r", kind, raw)
             return None
         query = (data.get("query") or text).strip()
         return Intent(kind=kind, query=query, topic=normalize_topic(query))

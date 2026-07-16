@@ -7,6 +7,9 @@ from collections.abc import Awaitable, Callable
 from deeptalk.bus import EventBus
 from deeptalk.intent.base import IntentDetector
 from deeptalk.intent.models import Intent
+from deeptalk.intent.quality import looks_garbled
+
+_log = logging.getLogger("deeptalk.orchestrator")
 
 
 class Orchestrator:
@@ -26,17 +29,21 @@ class Orchestrator:
         self._detect_sem = asyncio.Semaphore(max_detect_concurrent)
 
     async def handle(self, text: str) -> Intent | None:
+        if looks_garbled(text):
+            _log.info("skipping garbled line: %.80r", text)
+            return None
         async with self._detect_sem:
             intent = await self._detector.detect(text)
-        if intent is None or intent.topic in self._seen:
+        if intent is None:
+            return None
+        if intent.topic in self._seen:
+            _log.debug("duplicate topic %r, skipping", intent.topic)
             return None
         self._seen.add(intent.topic)
+        _log.info("intent %s -> firing agent for %r", intent.kind, intent.query)
         async with self._sem:
             await self._fire(intent)
         return intent
-
-
-_log = logging.getLogger("deeptalk.orchestrator")
 
 
 async def run_orchestrator(bus: EventBus, orchestrator: Orchestrator, session_id: str) -> None:
