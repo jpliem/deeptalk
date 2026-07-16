@@ -223,6 +223,7 @@ Everything below works end-to-end on a developer machine (fake STT, fake agents)
 | **Speaker diarization** — VibeVoice (post-session) | ✅ | GPU-only; auto-records when `DEEPTALK_RECORDING` is set |
 | **Timeline (rolling summarization)** — background Ollama service | ✅ | Merges topics by (session, topic_id); dot + swimlane views |
 | **Session management** — create, switch, rename, delete sessions | ✅ | localStorage + SQLite per-session isolation |
+| **Meeting minutes report** — `GET /report` + Report ⬇ button | ✅ | Markdown: exec summary (LLM w/ fallback), topics, decisions, action items, findings, transcript |
 | **Chat-style UI** — transcript bubbles, user messages, artifact cards | ✅ | New sidebar layout, mobile overlay |
 | **Audio file upload** — mp3/m4a/wav → ffmpeg decode → STT | ✅ | |
 | **GPU lease** — VRAM reservation, concurrent-STT guard | ✅ | |
@@ -233,7 +234,6 @@ Everything below works end-to-end on a developer machine (fake STT, fake agents)
 - End-to-end Nemotron validation on real GPU hardware (NeMo API tuning)
 - Export / share session transcripts
 - Real-time speaker identification (not just post-session diarization)
-- **Auto-generated meeting minutes / report** — combine timeline, wiki, and transcript into a structured Markdown report (executive summary, decisions, action items, transcript excerpts) via a `/report` endpoint
 
 ## Quickstart
 
@@ -371,6 +371,7 @@ curl -X POST localhost:8000/finalize -H 'content-type: application/json' -d '{"s
 | `POST /finalize` `{session_id}` | Build wiki (+ diarize if configured) |
 | `POST /clear` `{session_id}` | Clear session data |
 | `GET /wiki?session_id=` | Get the session wiki |
+| `GET /report?session_id=` | Meeting minutes as Markdown (exec summary, topics, decisions, action items, findings, transcript) |
 
 ## Configuration (environment variables)
 

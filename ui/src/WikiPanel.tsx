@@ -17,12 +17,25 @@ function Section({ label, items }: { label: string; items: string[] }) {
 
 export function WikiPanel({
   onFinalize,
+  onDownloadReport,
 }: {
   onFinalize: () => Promise<Wiki | null>
+  onDownloadReport?: () => Promise<void>
 }) {
   const [wiki, setWiki] = useState<Wiki | null>(null)
   const [building, setBuilding] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [open, setOpen] = useState(false)
+
+  async function download() {
+    if (!onDownloadReport) return
+    setDownloading(true)
+    try {
+      await onDownloadReport()
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   async function build() {
     setBuilding(true)
@@ -47,14 +60,27 @@ export function WikiPanel({
     <div className="sidebar-section">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
         <span className="sidebar-section-title">Session Wiki</span>
-        <button
-          className="sidebar-btn"
-          onClick={build}
-          disabled={building}
-          style={{ width: 'auto', padding: '0.3rem 0.6rem', margin: 0, fontSize: '0.75rem' }}
-        >
-          {building ? 'Building…' : 'Build'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.35rem' }}>
+          <button
+            className="sidebar-btn"
+            onClick={build}
+            disabled={building}
+            style={{ width: 'auto', padding: '0.3rem 0.6rem', margin: 0, fontSize: '0.75rem' }}
+          >
+            {building ? 'Building…' : 'Build'}
+          </button>
+          {onDownloadReport && (
+            <button
+              className="sidebar-btn"
+              onClick={download}
+              disabled={downloading}
+              title="Download meeting minutes as Markdown"
+              style={{ width: 'auto', padding: '0.3rem 0.6rem', margin: 0, fontSize: '0.75rem' }}
+            >
+              {downloading ? 'Report…' : 'Report ⬇'}
+            </button>
+          )}
+        </div>
       </div>
 
       {hasContent && (

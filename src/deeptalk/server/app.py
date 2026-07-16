@@ -11,6 +11,7 @@ from pathlib import Path as _Path
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -233,6 +234,27 @@ def create_app(
             if wiki is None:
                 raise HTTPException(status_code=404, detail="no wiki for session")
             return wiki.to_dict()
+
+        @app.get("/report")
+        async def get_report(session_id: str = "default") -> PlainTextResponse:
+            from deeptalk.report.builder import build_report
+
+            events = store.all_events(session_id)
+            if not events:
+                raise HTTPException(status_code=404, detail="no transcript for session")
+            clock = now_fn or _time.time
+            markdown = await build_report(
+                session_id=session_id,
+                events=events,
+                timeline_entries=(
+                    timeline_store.all_entries(session_id) if timeline_store else []
+                ),
+                wiki=wiki_store.get(session_id),
+                artifacts=artifact_store.all_artifacts(session_id),
+                router=router,
+                now=clock(),
+            )
+            return PlainTextResponse(markdown, media_type="text/markdown; charset=utf-8")
 
         @app.post("/clear")
         async def clear_session(session_id: str = "default") -> dict[str, str]:

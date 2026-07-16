@@ -11,6 +11,7 @@ import { WikiPanel } from './WikiPanel'
 import { postAsk } from './ask'
 import { postUpload } from './upload'
 import { postFinalize, getWiki } from './wiki'
+import { downloadReport } from './report'
 import { postClear } from './clear'
 import type { Wiki } from './types'
 
@@ -77,6 +78,14 @@ export default function App() {
   async function handleFinalize(): Promise<Wiki | null> {
     await postFinalize(SESSION_ID)
     return getWiki(SESSION_ID)
+  }
+
+  async function handleDownloadReport() {
+    try {
+      await downloadReport(SESSION_ID)
+    } catch (err) {
+      setAppError(err instanceof Error ? err.message : 'Report download failed.')
+    }
   }
 
   function handleBubbleClick(text: string) {
@@ -179,7 +188,7 @@ export default function App() {
 
           <div style={{ flex: 1 }} />
 
-          <WikiPanel onFinalize={handleFinalize} />
+          <WikiPanel onFinalize={handleFinalize} onDownloadReport={handleDownloadReport} />
         </aside>
 
         {/* Chat Area */}
