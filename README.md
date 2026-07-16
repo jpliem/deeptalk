@@ -1,12 +1,8 @@
 # DeepTalk
 
-**Proactive meeting assistant.** Unlike transcription tools that just write down what was said and summarize later, DeepTalk listens *as the discussion unfolds* — it classifies each utterance in real time, identifies whether the team is asking a question, weighing options, planning steps, or sketching a design, and immediately fires the right AI agent. Search answers, pros/cons, plans, and Mermaid diagrams appear as live cards in the chat feed while the meeting is still happening. A background timeline service builds a running summary of topics and decisions. Everything runs locally — no cloud dependency.
+**Proactive meeting assistant.** Unlike transcription tools that just write down what was said and summarize later, DeepTalk listens *as the discussion unfolds* — it classifies each utterance in real time, identifies whether the team is asking a question, weighing options, planning steps, or sketching a design, and immediately fires the right AI agent. Search answers, pros/cons, plans, and Mermaid diagrams appear as live cards in the chat feed while the meeting is still happening.
 
-DeepTalk transcribes via STT (fake / Nemotron / Whisper / Qwen3-ASR), auto-detects intent, fires AI agents
-that produce search answers, pros/cons, plans, and Mermaid diagrams — surfaced as
-cards on a live chat-style dashboard.  A background timeline service periodically
-summarizes the conversation into topics, decisions, and action items.  Post-session,
-speaker diarization (VibeVoice) labels who said what, and a wiki is built.
+Around the live loop: a background timeline service builds a running summary of topics and decisions, post-session speaker diarization (VibeVoice) labels who said what, a wiki condenses the session, and one click downloads the whole thing as Markdown meeting minutes. Everything runs locally — no cloud dependency.
 
 ## Architecture
 
@@ -20,15 +16,15 @@ flowchart TB
 
     subgraph STT["Speech-to-Text"]
         FAKE["FakeStt (fixture)"]
-        NEMO["Nemotron (GPU, nemo)"]
-        WHISPER["faster-whisper (GPU)"]
-        QWEN["Qwen3-ASR (sidecar)"]
+        NEMO["Nemotron / Parakeet<br/>(GPU, nemo)"]
+        WHISPER["faster-whisper<br/>(CPU or CUDA)"]
+        QWEN["Qwen3-ASR (sidecar)<br/>+ silence gate, phrase assembly,<br/>repeat suppression"]
     end
 
     subgraph Core["Core Pipeline"]
         TS["TranscriptStore (SQLite)"]
         BUS["Event Bus"]
-        ORCH["Orchestrator"]
+        ORCH["Orchestrator<br/>(garbled-line gate, topic dedup)"]
         INTENT["Intent Detector<br/>(heuristic / llm)"]
     end
 
@@ -54,12 +50,13 @@ flowchart TB
     subgraph Finalize["Post-Session"]
         DIARIZE["VibeVoice Diarizer<br/>(GPU)"]
         WIKI["Wiki Store (SQLite)"]
+        REPORT["📄 GET /report<br/>(Markdown minutes)"]
     end
 
     subgraph UI["React UI"]
         APP["App.tsx"]
         CHAT["Chat Feed<br/>(transcript + cards)"]
-        SIDEBAR["Sidebar<br/>(sessions + timeline)"]
+        SIDEBAR["Sidebar<br/>(sessions + timeline + wiki + report)"]
         T_PANEL["TimelinePanel<br/>(dot / swimlane)"]
     end
 
@@ -101,26 +98,29 @@ flowchart TB
     TS -->|"POST /finalize"| DIARIZE
     DIARIZE --> WIKI
     ART -.-> WIKI
+    WIKI --> REPORT
+    T_STORE -.-> REPORT
+    TS -.-> REPORT
 ```
 
 **Data flow (simplified):** Audio → STT → TranscriptStore → EventBus → both the UI (via WebSocket) and the Orchestrator → Agents → Artifact cards → UI.
 
-A separate TimelineService polls new transcript text, summarizes it via Ollama, merges into a timeline store, and pushes live updates over `/ws/timeline`.
+A separate TimelineService polls new transcript text, summarizes it via Ollama, merges into a timeline store, and pushes live updates over `/ws/timeline`. `GET /report` folds transcript + timeline + wiki + agent findings into Markdown meeting minutes.
 
 ## How it works
 
 ### Speech-to-text (STT)
 
-DeepTalk supports four STT backends, all running **locally** — no cloud transcription:
+DeepTalk supports several STT backends, all running **locally** — no cloud transcription:
 
 | Backend | Config value | Runtime | Quality | Notes |
 |---------|-------------|---------|---------|-------|
 | **Fake** | `fake` | CPU | N/A (fixture replay) | Dev/testing only; replays a pre-recorded JSONL fixture |
-| **faster-whisper** | `whisper` | CPU (int8) or CUDA (float16) | Excellent (large-v3 is SOTA) | Model sizes: tiny (39M) → large-v3 (1.5B). Runs in-process. Good English + 99 languages. Streaming mode transcribes on silence gaps |
-| **Qwen3-ASR** | `qwen` | CUDA only | Good (0.6B) | Runs as a separate sidecar process (scratch/asr_sidecar.py). Sends 2s PCM chunks as WAV files to an OpenAI-compatible HTTP endpoint. Designed for bilingual EN/ZH |
+| **faster-whisper** | `whisper` | CPU (int8) or CUDA (float16) | Excellent (large-v3 is SOTA) | Model sizes: tiny (39M) → large-v3 (1.5B). Runs in-process. Good English + 99 languages. Streaming mode finalizes phrases on silence gaps |
+| **Qwen3-ASR** | `qwen` | CUDA only | Good (0.6B) | Runs as a separate sidecar process (`scratch/asr_sidecar.py`). Sends ~2s PCM windows as WAV to an OpenAI-compatible HTTP endpoint. Designed for bilingual EN/ZH |
 | **Mega-ASR** | `qwen` (same sidecar) | CUDA only | Better in noisy conditions | Built on Qwen3-ASR with robustness LoRAs. Replace the sidecar with [Mega-ASR's streaming entrypoint](https://github.com/xzf-thu/Mega-ASR). Same `DEEPTALK_STT=qwen` config |
 | **Nemotron** | `nemotron` | CUDA (nemo toolkit) | Good (0.6B) | NeMo cache-aware streaming. Not yet validated on real hardware |
-| **Parakeet** | `parakeet` | CUDA (nemo toolkit) | SOTA English ASR | NVIDIA Parakeet TDT models (0.6B, 1.1B). Uses the same NeMo streaming pipeline as Nemotron. Pick a model via `DEEPTALK_PARAKEET_MODEL` |
+| **Parakeet** | `parakeet` | CUDA (nemo toolkit) | SOTA English ASR | NVIDIA Parakeet TDT models (0.6B, 1.1B). Same NeMo streaming pipeline as Nemotron. Pick a model via `DEEPTALK_PARAKEET_MODEL` |
 
 The file source expects a **16 kHz mono 16-bit WAV**. Live mic streams PCM frames at the same format over `/ws/live-audio`.
 
@@ -131,6 +131,8 @@ The Qwen path processes live audio in ~2 s windows, which historically caused th
 1. **Language pinning** — set `DEEPTALK_QWEN_LANGUAGE` (e.g. `en` or `zh`) and it is passed through to the sidecar on every request.
 2. **Silence gating + phrase assembly** — windows below `DEEPTALK_QWEN_RMS_THRESHOLD` never reach the model; voiced windows accumulate into one phrase that is emitted as a single final transcript event when a silent gap arrives (or after `DEEPTALK_QWEN_MAX_PHRASE_MS`). Agents therefore react to whole sentences.
 3. **Repeat suppression** — consecutive duplicate window texts are dropped and token loops (`the the the …`) are collapsed; the orchestrator additionally skips lines that still look garbled (repetition/symbol-soup heuristics) before intent detection.
+
+Real-hardware tuning steps for these guards live in [docs/VALIDATION.md](docs/VALIDATION.md).
 
 ### Event bus
 
@@ -146,9 +148,10 @@ Each bus holds a list of `asyncio.Queue` subscribers. When `publish()` is called
 A background task (`src/deeptalk/orchestrator.py`) subscribes to the transcript bus and:
 
 1. **Filters** — only `is_final` utterances for the current session
-2. **Detects intent** — passes the text to the `IntentDetector`
-3. **Deduplicates** — skips if the same `intent.topic` was already processed
-4. **Fires the agent** — under a concurrency semaphore (default 3 concurrent)
+2. **Gates quality** — skips lines that look like ASR garbage (token loops, symbol soup) and logs them
+3. **Detects intent** — passes the text to the `IntentDetector`
+4. **Deduplicates** — skips if the same `intent.topic` was already processed
+5. **Fires the agent** — under a concurrency semaphore (default 3 concurrent), logging every fire
 
 ### Intent detection
 
@@ -156,17 +159,17 @@ Two modes, selected by `DEEPTALK_INTENT`:
 
 | Mode | How it works | Pros | Cons |
 |------|-------------|------|------|
-| **`llm`** | Sends the text to your search provider (Ollama/Anthropic/OpenRouter) with a prompt asking it to classify as `search`, `debate`, `planning`, `mockup`, or `none`. Parses the JSON response | Accurate, catches nuance | Costs tokens, adds latency |
+| **`llm`** (default) | Sends the text to your search provider (Ollama/Anthropic/OpenRouter) with a prompt asking it to classify as `search`, `debate`, `planning`, `mockup`, or `none`. Parses the JSON response | Accurate, catches nuance | Costs tokens, adds latency |
 | **`heuristic`** | Rule-based keyword matching — checks for mockup signals (`"draw the"`, `"wireframe"`), planning signals (`"how do we build"`), debate signals (`" vs "`, `"pros and cons"`), and question leads (`"what"`, `"why"`) | Free, instant, no API call | Less accurate, misses complex intent |
 
-The `llm` mode is now the default. Since a small/mini model (e.g. `llama3.2:3b`) handles classification easily, the overhead is minimal.
+With Ollama, classification can run on a **different (stronger) model** than the agents: set `DEEPTALK_INTENT_MODEL=qwen2.5:7b` and agents keep using `DEEPTALK_OLLAMA_MODEL`. Classification is a single short completion, so a 7B model adds little latency but noticeably fewer misfires. Detection failures (provider down, unparseable JSON) are logged — check the server log if agents stop firing.
 
 ### Agents
 
 Each agent follows the same lifecycle:
 
 1. A **pending** artifact is published to the artifact bus (UI shows a skeleton loader card)
-2. The agent runs — calls the LLM via `ModelRouter` (which falls through a provider chain: Ollama → Anthropic → OpenRouter)
+2. The agent runs — calls the LLM via `ModelRouter` with the recent transcript as context
 3. A final artifact (`done` or `error`) with the payload is persisted to the `ArtifactStore` and published to the artifact bus
 4. The UI replaces the pending card with the rendered result
 
@@ -176,6 +179,8 @@ Each agent follows the same lifecycle:
 | **Pros/Cons** | `debate` | Two-column pros/cons grid + recommendation |
 | **Planning** | `planning` | Numbered step list |
 | **Mockup** | `mockup` | Mermaid diagram (lazy-loaded) + caption |
+
+Guardrails: a per-session agent-call budget (`DEEPTALK_MAX_AGENT_CALLS`) and a per-agent timeout (`DEEPTALK_AGENT_TIMEOUT`). You can also ask a question manually from the input bar — `POST /ask` runs the search agent directly, skipping intent detection.
 
 ### Artifact cards
 
@@ -201,36 +206,50 @@ A background `TimelineService` (`src/deeptalk/timeline/service.py`) runs every `
 
 The UI renders two views: **Dots** (vertical timeline) and **Swimlane** (horizontal bars). Clicking an entry scrolls the transcript feed to that timestamp.
 
+### Meeting minutes (`GET /report`)
+
+One request assembles the whole session into Markdown minutes — in the UI, the **Report ⬇** button (next to *Build* in the sidebar) downloads it as a `.md` file. Sections:
+
+- **Executive Summary** — the only LLM call in the report; degrades to a deterministic sentence if the provider is unavailable, so the report never fails
+- **Topics** — timeline entries with time ranges and summaries (falls back to wiki topics)
+- **Decisions / Action Items** — merged from timeline + wiki, deduplicated; action items render as `- [ ]` checkboxes
+- **Assistant Findings** — every successful agent card (search answers, recommendations, plan sizes, mockup captions)
+- **Transcript** — full timestamped log with speaker labels when diarization ran
+
+Best results: click **Build** (wiki) first, then **Report** — but the report works at any point in the session.
+
 ## Current state
 
 Everything below works end-to-end on a developer machine (fake STT, fake agents) and on a GPU laptop (real STT, real agents, diarization).
 
-### What's implemented (all phases 1–9)
+### What's implemented
 
 | Area | Status | Notes |
 |------|--------|-------|
 | **Transcript spine** (SQLite append-only store + WebSocket push) | ✅ | Source of truth; dedup by span_id |
-| **Live STT** — fake, Nemotron (nemo), faster-whisper, Qwen3-ASR | ✅ | Qwen is a separate sidecar process |
+| **Live STT** — fake, Nemotron/Parakeet (nemo), faster-whisper, Qwen3-ASR | ✅ | Qwen is a separate sidecar process |
+| **Live STT hardening** — language pinning, silence gate, phrase assembly, repeat suppression | ✅ | Pending real-hardware tuning — see [docs/VALIDATION.md](docs/VALIDATION.md) |
 | **Live mic streaming** — AudioWorkletNode → /ws/live-audio WebSocket | ✅ | 16 kHz PCM; also works with file upload |
 | **Model router** — Anthropic Claude, OpenRouter (Gemini), Ollama (local) | ✅ | Pick via `DEEPTALK_SEARCH_PROVIDER` |
-| **Intent detector** — heuristic (free) or LLM-powered | ✅ | |
-| **Orchestrator** — routes detected intents to agents | ✅ | Concurrency limit, cost tracking, timeout |
-| **Search agent** — web search + answer with citations | ✅ | |
+| **Intent detector** — heuristic (free) or LLM-powered | ✅ | Optional separate Ollama model via `DEEPTALK_INTENT_MODEL` |
+| **Orchestrator** — routes detected intents to agents | ✅ | Garbled-line gate, topic dedup, concurrency limit, cost tracking, timeout |
+| **Search agent** — answer with citations + transcript context | ✅ | |
 | **Pros/Cons agent** — extracts pros, cons, recommendation | ✅ | |
 | **Planning agent** — generates step-by-step plans | ✅ | |
 | **Mockup agent** — generates Mermaid diagrams via `enable_mockup` flag | ✅ | Lazy-loads mermaid in the UI |
 | **Session wiki** — topics, decisions, action items (post-finalize) | ✅ | |
+| **Meeting minutes report** — `GET /report` + Report ⬇ button | ✅ | Markdown: exec summary (LLM w/ fallback), topics, decisions, action items, findings, transcript |
 | **Speaker diarization** — VibeVoice (post-session) | ✅ | GPU-only; auto-records when `DEEPTALK_RECORDING` is set |
 | **Timeline (rolling summarization)** — background Ollama service | ✅ | Merges topics by (session, topic_id); dot + swimlane views |
 | **Session management** — create, switch, rename, delete sessions | ✅ | localStorage + SQLite per-session isolation |
-| **Meeting minutes report** — `GET /report` + Report ⬇ button | ✅ | Markdown: exec summary (LLM w/ fallback), topics, decisions, action items, findings, transcript |
-| **Chat-style UI** — transcript bubbles, user messages, artifact cards | ✅ | New sidebar layout, mobile overlay |
+| **Chat-style UI** — transcript bubbles, user messages, artifact cards | ✅ | Sidebar layout, mobile overlay |
 | **Audio file upload** — mp3/m4a/wav → ffmpeg decode → STT | ✅ | |
 | **GPU lease** — VRAM reservation, concurrent-STT guard | ✅ | |
 | **Cost/timeout hardening** — max agent calls, per-agent timeout | ✅ | |
 
 ### In development / on deck
 
+- Real-hardware validation of the live-STT hardening (checklist: [docs/VALIDATION.md](docs/VALIDATION.md))
 - End-to-end Nemotron validation on real GPU hardware (NeMo API tuning)
 - Export / share session transcripts
 - Real-time speaker identification (not just post-session diarization)
@@ -246,6 +265,8 @@ DEEPTALK_STT=fake uv run python -m deeptalk.server
 ```
 
 > **Seeing `{"detail":"Not Found"}` at `/`?** You skipped `npm run build`. The API works — check `curl http://127.0.0.1:8000/health`.
+
+> **Tip:** a `.env` file at the repo root is loaded automatically — put your `DEEPTALK_*` variables and API keys there instead of prefixing every command.
 
 ### Real agents (any machine + API key)
 
@@ -270,9 +291,11 @@ cd ui && npm install && npm run build && cd ..
 DEEPTALK_STT=whisper DEEPTALK_AUDIO_FILE=/path/16k_mono.wav uv run python -m deeptalk.server
 
 # Qwen3-ASR sidecar
-qwen-asr-serve Qwen/Qwen3-ASR-0.6B --host 127.0.0.1 --port 8010
-DEEPTALK_STT=qwen DEEPTALK_AUDIO_FILE=/path/16k_mono.wav uv run python -m deeptalk.server
+uv run python scratch/asr_sidecar.py     # serves :8010
+DEEPTALK_STT=qwen DEEPTALK_QWEN_LANGUAGE=en DEEPTALK_AUDIO_FILE=/path/16k_mono.wav uv run python -m deeptalk.server
 ```
+
+Set `DEEPTALK_QWEN_LANGUAGE` to your meeting language (`en`, `zh`) — without it the model re-detects the language on every 2 s window.
 
 ### Mega-ASR (robust ASR for noisy conditions)
 
@@ -332,6 +355,7 @@ ollama serve
 ```bash
 DEEPTALK_STT=qwen \
 DEEPTALK_QWEN_ASR_URL=http://GPU_LAPTOP_IP:8010/v1/audio/transcriptions \
+DEEPTALK_QWEN_LANGUAGE=en \
 DEEPTALK_SEARCH_PROVIDER=ollama \
 DEEPTALK_OLLAMA_URL=http://GPU_LAPTOP_IP:11434 \
 DEEPTALK_AUDIO=file \
@@ -339,7 +363,7 @@ DEEPTALK_AUDIO_FILE=/path/to/meeting.wav \
 uv run python -m deeptalk.server
 ```
 
-Only the 2-second PCM chunks (~64 KB each) travel over the network to the GPU laptop's Qwen sidecar. The browser, audio file, and WebSocket connections all stay local to the Mac. For live mic, the mic audio is captured on the Mac and only the chunks are sent remotely.
+Only the 2-second PCM chunks (~64 KB each) travel over the network to the GPU laptop's Qwen sidecar — and silent windows are gated out client-side, so idle stretches send nothing at all. The browser, audio file, and WebSocket connections all stay local to the Mac. For live mic, the mic audio is captured on the Mac and only the chunks are sent remotely.
 
 ### Live mic (Linux desktop, not WSL)
 
@@ -348,12 +372,13 @@ DEEPTALK_STT=whisper DEEPTALK_AUDIO=mic uv run python -m deeptalk.server
 # Click the 🎤 button in the input bar to start streaming
 ```
 
-### Diarization + wiki
+### Diarization + wiki + report
 
 ```bash
 DEEPTALK_DIARIZE=vibevoice DEEPTALK_RECORDING=/path/meeting.wav uv run python -m deeptalk.server
-# In the UI, click "Build wiki" — or:
+# In the UI, click "Build" then "Report ⬇" — or:
 curl -X POST localhost:8000/finalize -H 'content-type: application/json' -d '{"session_id":"demo"}'
+curl "localhost:8000/report?session_id=demo" -o minutes.md
 ```
 
 ## Endpoints
@@ -366,7 +391,7 @@ curl -X POST localhost:8000/finalize -H 'content-type: application/json' -d '{"s
 | `WS /ws/artifacts?session_id=` | Live agent card stream |
 | `WS /ws/live-audio?session_id=` | Accepts 16 kHz PCM binary frames for live STT |
 | `WS /ws/timeline?session_id=` | Live timeline entry stream |
-| `POST /ask` `{session_id, query}` | Run the search agent manually |
+| `POST /ask` `{session_id, query}` | Run the search agent manually (skips intent detection) |
 | `POST /upload` `{session_id, file}` | Upload audio for transcription |
 | `POST /finalize` `{session_id}` | Build wiki (+ diarize if configured) |
 | `POST /clear` `{session_id}` | Clear session data |
@@ -375,21 +400,24 @@ curl -X POST localhost:8000/finalize -H 'content-type: application/json' -d '{"s
 
 ## Configuration (environment variables)
 
+Set in the shell or in a `.env` file at the repo root (loaded automatically).
+
 | Variable | Default | Meaning |
 |----------|---------|---------|
 | `DEEPTALK_STT` | `fake` | `fake`, `whisper` (faster-whisper), `qwen` (Qwen3-ASR sidecar), `nemotron`, `parakeet` |
 | `DEEPTALK_WHISPER_MODEL` | `base` | faster-whisper model size |
-| `DEEPTALK_AUDIO` | `file` | `file` or `mic` |
+| `DEEPTALK_PARAKEET_MODEL` | `nvidia/parakeet-tdt-0.6b` | NeMo Parakeet model |
+| `DEEPTALK_AUDIO` | `file` | `file` or `mic` — with `mic`, transcription starts when the browser streams audio |
 | `DEEPTALK_AUDIO_FILE` | — | Path to 16 kHz mono WAV |
 | `DEEPTALK_QWEN_ASR_URL` | `http://127.0.0.1:8010/v1/audio/transcriptions` | Qwen3-ASR endpoint |
 | `DEEPTALK_QWEN_ASR_MODEL` | `Qwen/Qwen3-ASR-0.6B` | Qwen3-ASR model name |
 | `DEEPTALK_QWEN_ASR_CHUNK_MS` | `2000` | PCM window for live Qwen |
 | `DEEPTALK_QWEN_LANGUAGE` | — (auto) | Pin the ASR language (e.g. `en`, `zh`) — prevents per-chunk language flipping |
-| `DEEPTALK_QWEN_RMS_THRESHOLD` | `200` | int16 RMS below which a window counts as silence (never sent to the model) |
+| `DEEPTALK_QWEN_RMS_THRESHOLD` | `200` | int16 RMS below which a window counts as silence (never sent to the model). Soft speech missed → lower to ~120; noise transcribed → raise to ~350 |
 | `DEEPTALK_QWEN_MAX_PHRASE_MS` | `15000` | Force-finalize a phrase after this much continuous speech |
 | `DEEPTALK_SEARCH_PROVIDER` | `fake` | `fake`, `anthropic`, `openrouter`, `ollama` |
 | `DEEPTALK_OLLAMA_URL` | `http://localhost:11434` | Ollama server URL |
-| `DEEPTALK_OLLAMA_MODEL` | `llama3.2:3b` | Ollama model name |
+| `DEEPTALK_OLLAMA_MODEL` | `llama3.2:3b` | Ollama model for agents |
 | `DEEPTALK_TIMELINE_INTERVAL` | `45` | Seconds between timeline summarizations (`0` = off) |
 | `DEEPTALK_ANTHROPIC_MODEL` | `claude-sonnet-4-6` | Claude model name |
 | `DEEPTALK_OPENROUTER_MODEL` | `google/gemini-2.5-flash` | OpenRouter model |
@@ -399,6 +427,7 @@ curl -X POST localhost:8000/finalize -H 'content-type: application/json' -d '{"s
 | `DEEPTALK_RECORDING` | — | WAV path for recording + diarization |
 | `DEEPTALK_MAX_AGENT_CALLS` | `50` | Per-session agent cap (`-1` = unlimited) |
 | `DEEPTALK_AGENT_TIMEOUT` | `30` | Per-agent timeout (seconds) |
+| `DEEPTALK_ENABLE_MOCKUP` | `true` | Set `false` to disable the mockup agent |
 | `DEEPTALK_SESSION_ID` | `demo` | Current session ID |
 | `DEEPTALK_DB` | `deeptalk-demo.db` | SQLite path |
 | `DEEPTALK_FIXTURE` | bundled | Fixture path (when STT=fake) |
@@ -423,6 +452,9 @@ cd ui && npm test    # UI (Vitest)
 
 ## Known gaps
 
+- **Live-STT hardening** (language pinning, silence gate, phrase assembly) is unit-tested but not yet tuned on real hardware — follow [docs/VALIDATION.md](docs/VALIDATION.md). In particular, verify which language codes the `qwen_asr` package accepts for `DEEPTALK_QWEN_LANGUAGE`.
+- **Overlapped speech** — when two people talk simultaneously, single-channel ASR garbles the mix; the garbled-line gate keeps agents from firing on it, but the words are lost. Diarization labels turns, not overlaps.
 - **Nemotron** STT is wired but not validated on real GPU hardware — will need NeMo API / chunk-size tuning on first run.
 - **Live mic** is unavailable in WSL2 (no default audio input device).
 - **Timeline** requires a local Ollama instance — no remote LLM fallback yet.
+- **`DEEPTALK_AUDIO=mic` disables host-side file/fixture ingestion** at startup by design (audio arrives per-connection over `/ws/live-audio`); set `DEEPTALK_AUDIO=file` when replaying fixtures or files.
